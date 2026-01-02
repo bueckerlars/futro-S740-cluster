@@ -1,0 +1,60 @@
+# Terraform/OpenTofu Variables Configuration
+# Copy this file to terraform.tfvars and fill in your actual values
+# terraform.tfvars is git-ignored and contains sensitive data
+
+# K3S Cluster Token
+# Get from master node: sudo cat /var/lib/rancher/k3s/server/node-token
+# Format: K10<random-hex>::server:<random-hex>
+k3s_token = "K10YOUR_K3S_TOKEN_HERE::server:YOUR_SERVER_TOKEN_HERE"
+
+# Network configuration
+# DNS server IP address (optional, has default)
+dns_server = "192.168.178.11"
+
+# Gateway IP address (optional, has default)
+gateway = "192.168.178.1"
+
+# User configuration
+# Password hash for the kairos user
+# Generate with: openssl passwd -6 -salt $(openssl rand -base64 6)
+# Or use existing hash from Kairos installation
+password_hash = "$6$YOUR_SALT_HERE$YOUR_PASSWORD_HASH_HERE"
+
+# SSH public key for the kairos user
+# Usually from: cat ~/.ssh/id_rsa.pub
+# Format: ssh-rsa <key-data> <comment>
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your-email@example.com"
+
+# Cluster nodes configuration
+# Define all nodes in your cluster
+# Key: unique identifier (used for hostname generation)
+# host: IP address of the node
+# role: "master" or "worker"
+nodes = {
+  # Master node (required - exactly one)
+  master = {
+    host = "192.168.178.15"
+    role = "master"
+  }
+  # Worker nodes 
+  worker1 = {
+    host = "192.168.178.16"
+    role = "worker"
+  }
+  worker2 = {
+    host = "192.168.178.17"
+    role = "worker"
+  }
+  worker3 = {
+    host = "192.168.178.18"
+    role = "worker"
+  }
+}
+
+# Notes:
+# - Hostnames are automatically generated:
+#   - Master: k3s-master
+#   - Workers: k3s-worker-1, k3s-worker-3, etc.
+# - All nodes must be reachable via SSH with the configured key
+# - The kairos user must exist on all nodes with sudo privileges
+
