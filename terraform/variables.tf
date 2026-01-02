@@ -26,3 +26,21 @@ variable "ssh_public_key" {
   description = "SSH public key for the kairos user"
 }
 
+variable "nfs_server" {
+  type        = string
+  description = "NFS server IP address or hostname"
+  default     = "192.168.178.10"
+}
+
+variable "nfs_export_path" {
+  type        = string
+  description = "NFS export path"
+  default     = "/mnt/SSD-Pool/k3s-storage"
+}
+
+variable "nfs_mount_options" {
+  type        = string
+  description = "NFS mount options"
+  default     = "rw,sync,hard,intr"
+}
+

@@ -8,6 +8,7 @@ This configuration automates the setup and management of:
 - Bootstrap cloud-init configurations for initial node installation
 - Kairos/k3s configuration files on each node
 - `/etc/hosts` entries for cluster node resolution
+- NFS storage mounts for shared persistent volumes
 - Automatic node reboots when Kairos configuration changes
 
 ## Prerequisites
@@ -31,6 +32,7 @@ Before starting, you need:
 - K3S token (from master node or generate new one)
 - Password hash for the `kairos` user
 - SSH public key for the `kairos` user
+- NFS server IP address and export path (optional, has defaults)
 
 ## Configuration
 
@@ -56,7 +58,7 @@ To get started:
 
 2. **Configure Variables**
    - Copy `terraform.tfvars.example` to `terraform.tfvars`
-   - Edit `terraform.tfvars` with your actual values (see Configuration section above)
+   - Edit `terraform.tfvars` with your actual values
    - **Important**: `terraform.tfvars` contains sensitive data and is git-ignored
 
 3. **Review Plan**
@@ -108,20 +110,22 @@ tofu destroy
 
 ### Reboot Behavior
 
-**Nodes reboot automatically only when Kairos/k3s configuration changes.**
+**Nodes reboot automatically when Kairos/k3s configuration or NFS storage configuration changes.**
 
 - ✅ **Reboot happens** when:
   - K3S configuration (`/oem/91_k3s.yaml`) is updated
   - K3S token changes
   - Master IP changes
   - Node role configuration changes
+  - NFS storage configuration (`/oem/92_nfs-storage.yaml`) is updated
+  - NFS server or export path changes
+  - `/etc/hosts` entries change
 
 - ❌ **Reboot does NOT happen** when:
-  - Only `/etc/hosts` entries change
-  - Other deployments or updates are made
-  - `tofu apply` is run without Kairos config changes
+  - Only unrelated configuration changes are made
+  - `tofu apply` is run without any config changes
 
-This ensures nodes only reboot when necessary for k3s configuration changes, not for routine operations.
+This ensures nodes reboot when necessary for configuration changes to take effect.
 
 ### Resource Dependencies
 
@@ -129,14 +133,28 @@ The configuration uses explicit dependencies to ensure correct execution order:
 
 1. `local_file.bootstrap_config` - Generates bootstrap cloud-init files
 2. `ssh_resource.kairos_config` - Deploys k3s configuration to nodes
-3. `ssh_resource.hosts_file` - Updates `/etc/hosts` on all nodes
-4. `ssh_resource.reboot` - Reboots nodes (only if kairos_config changed)
+3. `ssh_resource.nfs_storage_config` - Deploys NFS storage configuration to nodes
+4. `ssh_resource.hosts_file` - Updates `/etc/hosts` on all nodes
+5. `ssh_resource.reboot` - Reboots nodes when config changes are detected
 
 ### Hostname Format
 
 - Master nodes: `k3s-master`
 - Worker nodes: `k3s-worker-{number}` (e.g., `k3s-worker-1`, `k3s-worker-3`)
 - Format is automatically generated from node keys in `terraform.tfvars`
+
+### NFS Storage Configuration
+
+The configuration automatically sets up NFS storage mounts on all nodes for shared persistent volumes:
+
+- **Mount Point**: `/var/lib/k3s/storage` (standard k3s persistent volume path)
+- **NFS Server**: Configurable via `nfs_server` variable (default: `192.168.178.10`)
+- **Export Path**: Configurable via `nfs_export_path` variable (default: `/mnt/SSD-Pool/k3s-storage`)
+- **Mount Options**: Configurable via `nfs_mount_options` variable (default: `rw,sync,hard,intr`)
+- **Persistence**: Mount is added to `/etc/fstab` for automatic mounting on boot
+- **Scope**: Applied to all nodes (master and worker)
+
+The NFS configuration is deployed as `/oem/92_nfs-storage.yaml` on each node and applied on the next reboot.
 
 ### Generated Files
 
@@ -193,6 +211,20 @@ The configuration uses explicit dependencies to ensure correct execution order:
 - Manually trigger reboot if needed
 - Check Kairos logs: `ssh kairos@<node> "journalctl -u kairos"`
 
+### NFS Storage Issues
+
+**Problem**: NFS mount not working or not persistent
+
+**Solutions**:
+- Verify NFS server is accessible: `ping <nfs-server-ip>`
+- Check if NFS client is installed: `ssh kairos@<node> "apk list | grep nfs-utils"`
+- Verify mount point exists: `ssh kairos@<node> "ls -la /var/lib/k3s/storage"`
+- Check fstab entry: `ssh kairos@<node> "cat /etc/fstab | grep k3s-storage"`
+- Test manual mount: `ssh kairos@<node> "sudo mount -t nfs <nfs-server>:<export-path> /var/lib/k3s/storage"`
+- Check NFS server export permissions and network connectivity
+- Verify NFS config file: `ssh kairos@<node> "cat /oem/92_nfs-storage.yaml"`
+- Check mount status: `ssh kairos@<node> "mount | grep k3s-storage"`
+
 ## Extending the Configuration
 
 ### Adding New Nodes
@@ -214,9 +246,11 @@ The configuration uses explicit dependencies to ensure correct execution order:
    - `bootstrap.yaml.tpl` - Initial installation config
    - `k3s-master.yaml` - Master node k3s config
    - `k3s-worker.yaml` - Worker node k3s config
+   - `nfs-storage.yaml` - NFS storage mount configuration
 
 2. Templates use Terraform template syntax: `${variable_name}`
 3. Changes require `tofu apply` to regenerate configs
+4. NFS storage config is deployed to `/oem/92_nfs-storage.yaml` on all nodes
 
 ### Adding New Resources
 

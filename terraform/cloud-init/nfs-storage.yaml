@@ -1,0 +1,20 @@
+#cloud-config
+
+# NFS Storage configuration for k3s persistent volumes
+# This file is deployed as /oem/92_nfs-storage.yaml on all nodes
+
+# Install NFS client utilities
+packages:
+  - nfs-utils
+
+# Create mount point and add NFS mount to /etc/fstab for persistent mounting
+runcmd:
+  - mkdir -p /var/lib/k3s/storage
+  - chmod 755 /var/lib/k3s/storage
+  - |
+    # Add NFS mount entry to /etc/fstab if it doesn't exist
+    if ! grep -q "${NFS_SERVER}:${NFS_EXPORT_PATH}" /etc/fstab; then
+      echo "${NFS_SERVER}:${NFS_EXPORT_PATH} /var/lib/k3s/storage nfs ${NFS_MOUNT_OPTIONS} 0 0" >> /etc/fstab
+    fi
+  - mount -t nfs ${NFS_SERVER}:${NFS_EXPORT_PATH} /var/lib/k3s/storage || true
+

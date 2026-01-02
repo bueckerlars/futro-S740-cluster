@@ -14,6 +14,18 @@ dns_server = "192.168.178.11"
 # Gateway IP address (optional, has default)
 gateway = "192.168.178.1"
 
+# NFS Storage configuration
+# NFS server IP address or hostname (optional, has default)
+nfs_server = "192.168.178.10"
+
+# NFS export path (optional, has default)
+# TrueNAS Scale 2025 path format
+nfs_export_path = "/mnt/SSD-Pool/k3s-storage"
+
+# NFS mount options (optional, has default)
+# Common options: rw (read-write), sync (synchronous writes), hard (hard mount), intr (interruptible)
+nfs_mount_options = "rw,sync,hard,intr"
+
 # User configuration
 # Password hash for the kairos user
 # Generate with: openssl passwd -6 -salt $(openssl rand -base64 6)

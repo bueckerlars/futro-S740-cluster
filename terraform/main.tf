@@ -20,6 +20,36 @@ locals {
     node.host
     if node.role == "master"
   ][0]
+
+  # Create hash triggers for reboot resource
+  # This ensures reboot is triggered when kairos_config or hosts_file changes
+  reboot_triggers = {
+    for key, node in local.nodes :
+    key => sha256(join("", [
+      # Hash of kairos config content
+      sha256(templatefile(
+        node.role == "master"
+        ? "${path.module}/cloud-init/k3s-master.yaml"
+        : "${path.module}/cloud-init/k3s-worker.yaml",
+        {
+          NODE_IP   = node.host
+          MASTER_IP = local.master_ip
+          K3S_TOKEN = var.k3s_token
+        }
+      )),
+      # Hash of hosts entries
+      sha256(local.hosts_entries),
+      # Hash of NFS storage config
+      sha256(templatefile(
+        "${path.module}/cloud-init/nfs-storage.yaml",
+        {
+          NFS_SERVER      = var.nfs_server
+          NFS_EXPORT_PATH = var.nfs_export_path
+          NFS_MOUNT_OPTIONS = var.nfs_mount_options
+        }
+      ))
+    ]))
+  }
 }
 
 # Generate bootstrap cloud-init configs for each node
@@ -67,6 +97,28 @@ resource "ssh_resource" "kairos_config" {
   }
 }
 
+resource "ssh_resource" "nfs_storage_config" {
+  for_each = local.nodes
+
+  host        = each.value.host
+  user        = "kairos"
+  private_key = file(pathexpand("~/.ssh/id_rsa"))
+  timeout     = "2m"
+
+  file {
+    content = templatefile(
+      "${path.module}/cloud-init/nfs-storage.yaml",
+      {
+        NFS_SERVER      = var.nfs_server
+        NFS_EXPORT_PATH = var.nfs_export_path
+        NFS_MOUNT_OPTIONS = var.nfs_mount_options
+      }
+    )
+
+    destination = "/oem/92_nfs-storage.yaml"
+  }
+}
+
 resource "ssh_resource" "hosts_file" {
   for_each = local.nodes
 
@@ -90,13 +142,15 @@ resource "ssh_resource" "hosts_file" {
 }
 
 # Reboot nodes after all configuration changes
-# The reboot is triggered when kairos_config or hosts_file resources change
+# The reboot is triggered when kairos_config, hosts_file, or nfs_storage_config resources change
+# The trigger hash ensures the resource changes when dependencies change
 resource "ssh_resource" "reboot" {
   for_each = local.nodes
 
   depends_on = [
     ssh_resource.kairos_config,
-    ssh_resource.hosts_file
+    ssh_resource.hosts_file,
+    ssh_resource.nfs_storage_config
   ]
 
   host        = each.value.host
@@ -105,7 +159,9 @@ resource "ssh_resource" "reboot" {
   timeout     = "5m"
 
   # Reboot command - small delay ensures command is registered before connection drops
+  # The trigger hash comment ensures this resource changes when dependencies change
   commands = [
+    "echo 'Reboot triggered by config change: ${local.reboot_triggers[each.key]}'",
     "sleep 2 && sudo reboot"
   ]
 }
