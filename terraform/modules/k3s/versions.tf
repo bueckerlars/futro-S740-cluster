@@ -1,15 +1,9 @@
 terraform {
   required_providers {
-    ssh = {
-      source  = "loafoe/ssh"
-      version = "~> 2.0"
-    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.23"
     }
   }
 }
-
-provider "ssh" {}
 

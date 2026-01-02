@@ -1,0 +1,6 @@
+#cloud-config
+k3s:
+  enabled: true
+  args:
+    - "--node-ip=${NODE_IP}"
+    - "--flannel-backend=host-gw"

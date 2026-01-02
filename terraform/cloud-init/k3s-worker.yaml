@@ -1,0 +1,12 @@
+#cloud-config
+k3s:
+  enabled: false
+
+k3s-agent:
+  enabled: true
+
+write_files:
+  - path: /etc/rancher/k3s/k3s-agent.env
+    content: |
+      K3S_URL=https://${MASTER_IP}:6443
+      K3S_TOKEN=${K3S_TOKEN}
