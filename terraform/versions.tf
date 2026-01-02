@@ -3,7 +3,7 @@ terraform {
 
   required_providers {
     k3s = {
-      source  = "k3s-io/k3s"
+      source  = "striveworks/k3s"
       version = "~> 0.1"
     }
     local = {
