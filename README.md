@@ -1,7 +1,7 @@
 # Futro S740 Kubernetes Cluster
 
 ![GitHub Template](https://img.shields.io/badge/template-repository-blue?style=flat-square)
-![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.5.0-623CE4?style=flat-square&logo=terraform)
+![OpenTofu](https://img.shields.io/badge/opentofu-%3E%3D1.5.0-7C42FF?style=flat-square)
 ![License](https://img.shields.io/github/license/bueckerlars/futro-S740-cluster?style=flat-square)
 ![GitHub stars](https://img.shields.io/github/stars/bueckerlars/futro-S740-cluster?style=flat-square)
 ![GitHub forks](https://img.shields.io/github/forks/bueckerlars/futro-S740-cluster?style=flat-square)
@@ -38,6 +38,8 @@ The following hardware components are used in this setup:
 - **Storage**: 32GB SSD (upgradeable)
 - **Network**: Gigabit Ethernet
 - **Cooling**: Passive (fanless)
+
+> **Note**: For detailed hardware documentation, BIOS configuration, troubleshooting, and modifications, refer to the comprehensive [Futro S740 Guide/Specs/Information](https://github.com/R3NE07/Futro-S740).
 
 ## Cluster Architecture
 
