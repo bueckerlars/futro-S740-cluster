@@ -145,7 +145,7 @@ The configuration uses explicit dependencies to ensure correct execution order:
 
 ### NFS Storage Configuration
 
-The configuration automatically sets up NFS storage mounts on all nodes for shared persistent volumes:
+The configuration automatically sets up NFS storage mounts on all nodes and installs an NFS provisioner for dynamic volume provisioning:
 
 - **Mount Point**: `/var/lib/k3s/storage` (standard k3s persistent volume path)
 - **NFS Server**: Configurable via `nfs_server` variable (default: `192.168.178.10`)
@@ -155,6 +155,38 @@ The configuration automatically sets up NFS storage mounts on all nodes for shar
 - **Scope**: Applied to all nodes (master and worker)
 
 The NFS configuration is deployed as `/oem/92_nfs-storage.yaml` on each node and applied on the next reboot.
+
+### NFS Provisioner
+
+An NFS provisioner (`nfs-subdir-external-provisioner`) is automatically installed via Helm to enable dynamic volume provisioning:
+
+- **StorageClass**: `nfs` (set as default storage class)
+- **Provisioner**: `nfs-subdir-external-provisioner`
+- **Namespace**: `kube-system`
+- **Reclaim Policy**: `Retain` (volumes are not deleted when PVC is removed)
+- **Path Pattern**: `${.PVC.namespace}/${.PVC.name}` (organized structure on NFS)
+
+**Benefits**:
+- Pods can move between nodes while maintaining access to their volumes
+- All persistent volumes are stored on the shared NFS storage
+- Volumes are automatically created when PVCs are created
+- No manual volume management required
+
+**Usage**: Simply create a PVC without specifying a storage class, and it will automatically use the NFS storage:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  # storageClassName: nfs  # Optional, nfs is the default
+```
 
 ### Generated Files
 
@@ -224,6 +256,22 @@ The NFS configuration is deployed as `/oem/92_nfs-storage.yaml` on each node and
 - Check NFS server export permissions and network connectivity
 - Verify NFS config file: `ssh kairos@<node> "cat /oem/92_nfs-storage.yaml"`
 - Check mount status: `ssh kairos@<node> "mount | grep k3s-storage"`
+
+### NFS Provisioner Issues
+
+**Problem**: PVCs are not being created or volumes are not accessible
+
+**Solutions**:
+- Check if NFS provisioner is running: `kubectl get pods -n kube-system | grep nfs`
+- Verify StorageClass exists: `kubectl get storageclass nfs`
+- Check if StorageClass is default: `kubectl get storageclass nfs -o yaml | grep is-default-class`
+- View provisioner logs: `kubectl logs -n kube-system -l app=nfs-subdir-external-provisioner`
+- Verify NFS server connectivity from cluster: `kubectl run -it --rm debug --image=busybox --restart=Never -- sh -c "ping <nfs-server-ip>"`
+- Check PVC status: `kubectl get pvc`
+- Check PV status: `kubectl get pv`
+- Verify NFS export path permissions on NFS server
+- Check if Helm release is installed: `helm list -n kube-system | grep nfs`
+- Reinstall provisioner if needed: Update `nfs-provisioner.tf` and run `tofu apply`
 
 ## Extending the Configuration
 
