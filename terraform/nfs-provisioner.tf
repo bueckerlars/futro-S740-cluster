@@ -5,7 +5,7 @@
 # k3s stores kubeconfig at /etc/rancher/k3s/k3s.yaml on the master node
 resource "null_resource" "kubeconfig" {
   depends_on = [
-    ssh_resource.kairos_config
+    ssh_resource.verify_node_online
   ]
 
   triggers = {
@@ -27,8 +27,7 @@ resource "null_resource" "kubeconfig" {
 # This ensures k3s API is accessible
 resource "time_sleep" "wait_for_cluster" {
   depends_on = [
-    ssh_resource.kairos_config,
-    ssh_resource.nfs_storage_config,
+    ssh_resource.verify_node_online,
     null_resource.kubeconfig
   ]
 

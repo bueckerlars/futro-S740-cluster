@@ -73,14 +73,50 @@ resource "local_file" "bootstrap_config" {
   directory_permission = "0755"
 }
 
-resource "ssh_resource" "kairos_config" {
+# Deploy all Kairos configuration files to temp location first
+# This allows us to check for changes before moving to /oem/ and triggering reboot
+resource "ssh_resource" "nfs_storage_config_temp" {
   for_each = local.nodes
 
   host        = each.value.host
   user        = "kairos"
   private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "2m"
+  timeout     = "10m"
+  retry_delay = "10s"
 
+  # Write to temp file
+  file {
+    content = templatefile(
+      "${path.module}/cloud-init/nfs-storage.yaml",
+      {
+        NFS_SERVER      = var.nfs_server
+        NFS_EXPORT_PATH = var.nfs_export_path
+        NFS_MOUNT_OPTIONS = var.nfs_mount_options
+      }
+    )
+
+    destination = "/tmp/92_nfs-storage.yaml.new"
+  }
+
+  commands = [
+    "test -f /tmp/92_nfs-storage.yaml.new && echo 'NFS config temp file created' || exit 1"
+  ]
+}
+
+resource "ssh_resource" "kairos_config_temp" {
+  for_each = local.nodes
+
+  depends_on = [
+    ssh_resource.nfs_storage_config_temp
+  ]
+
+  host        = each.value.host
+  user        = "kairos"
+  private_key = file(pathexpand("~/.ssh/id_rsa"))
+  timeout     = "10m"
+  retry_delay = "10s"
+
+  # Write to temp file
   file {
     content = templatefile(
       each.value.role == "master"
@@ -93,30 +129,62 @@ resource "ssh_resource" "kairos_config" {
       }
     )
 
-    destination = "/oem/91_k3s.yaml"
+    destination = "/tmp/91_k3s.yaml.new"
   }
+
+  commands = [
+    "test -f /tmp/91_k3s.yaml.new && echo 'Kairos config temp file created' || exit 1"
+  ]
 }
 
-resource "ssh_resource" "nfs_storage_config" {
+# Deploy all config files atomically to /oem/ only if changes are detected
+# This ensures only one reboot happens when all files are moved
+resource "ssh_resource" "kairos_config" {
   for_each = local.nodes
+
+  depends_on = [
+    ssh_resource.kairos_config_temp,
+    ssh_resource.hosts_file
+  ]
 
   host        = each.value.host
   user        = "kairos"
   private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "2m"
+  timeout     = "10m"
+  retry_delay = "10s"
 
-  file {
-    content = templatefile(
-      "${path.module}/cloud-init/nfs-storage.yaml",
-      {
-        NFS_SERVER      = var.nfs_server
-        NFS_EXPORT_PATH = var.nfs_export_path
-        NFS_MOUNT_OPTIONS = var.nfs_mount_options
-      }
-    )
-
-    destination = "/oem/92_nfs-storage.yaml"
-  }
+  # Check if files changed, then move all files atomically to /oem/
+  # Kairos will automatically reboot once files are in /oem/
+  commands = [
+    <<-EOT
+      # Check if any config files have changed
+      CHANGED=false
+      
+      # Check kairos config
+      if [ ! -f /oem/91_k3s.yaml ] || ! diff -q /tmp/91_k3s.yaml.new /oem/91_k3s.yaml >/dev/null 2>&1; then
+        CHANGED=true
+      fi
+      
+      # Check NFS storage config
+      if [ ! -f /oem/92_nfs-storage.yaml ] || ! diff -q /tmp/92_nfs-storage.yaml.new /oem/92_nfs-storage.yaml >/dev/null 2>&1; then
+        CHANGED=true
+      fi
+      
+      # Only move files if changes were detected
+      if [ "$CHANGED" = "true" ]; then
+        echo "Configuration changes detected, deploying to /oem/..."
+        sudo mv /tmp/91_k3s.yaml.new /oem/91_k3s.yaml
+        sudo mv /tmp/92_nfs-storage.yaml.new /oem/92_nfs-storage.yaml
+        echo "Files deployed. Kairos will reboot automatically."
+      else
+        echo "No configuration changes detected. Skipping deployment."
+        rm -f /tmp/91_k3s.yaml.new /tmp/92_nfs-storage.yaml.new
+      fi
+      
+      # Verify files exist
+      test -f /oem/91_k3s.yaml && test -f /oem/92_nfs-storage.yaml && echo 'Files verified' || exit 1
+    EOT
+  ]
 }
 
 resource "ssh_resource" "hosts_file" {
@@ -125,7 +193,8 @@ resource "ssh_resource" "hosts_file" {
   host        = each.value.host
   user        = "kairos"
   private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "2m"
+  timeout     = "10m"
+  retry_delay = "10s"
 
   file {
     content     = local.hosts_entries
@@ -141,28 +210,37 @@ resource "ssh_resource" "hosts_file" {
   ]
 }
 
-# Reboot nodes after all configuration changes
-# The reboot is triggered when kairos_config, hosts_file, or nfs_storage_config resources change
-# The trigger hash ensures the resource changes when dependencies change
-resource "ssh_resource" "reboot" {
+# Wait for nodes to come back online after Kairos-triggered reboot (if reboot happened)
+# Kairos automatically reboots when config files in /oem/ are changed
+resource "time_sleep" "wait_after_reboot" {
   for_each = local.nodes
 
   depends_on = [
-    ssh_resource.kairos_config,
-    ssh_resource.hosts_file,
-    ssh_resource.nfs_storage_config
+    ssh_resource.kairos_config
+  ]
+
+  create_duration = "120s"  # Wait 2 minutes for nodes to boot (if reboot occurred)
+}
+
+# Verify nodes are back online after reboot (if reboot happened)
+resource "ssh_resource" "verify_node_online" {
+  for_each = local.nodes
+
+  depends_on = [
+    time_sleep.wait_after_reboot
   ]
 
   host        = each.value.host
   user        = "kairos"
   private_key = file(pathexpand("~/.ssh/id_rsa"))
   timeout     = "5m"
+  retry_delay = "10s"
 
-  # Reboot command - small delay ensures command is registered before connection drops
-  # The trigger hash comment ensures this resource changes when dependencies change
+  # Simple command to verify SSH connectivity and node is responsive
+  # This will succeed even if no reboot happened (node is already online)
   commands = [
-    "echo 'Reboot triggered by config change: ${local.reboot_triggers[each.key]}'",
-    "sleep 2 && sudo reboot"
+    "uptime",
+    "echo 'Node ${each.key} is online'"
   ]
 }
 
