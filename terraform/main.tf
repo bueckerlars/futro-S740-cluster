@@ -20,36 +20,6 @@ locals {
     node.host
     if node.role == "master"
   ][0]
-
-  # Create hash triggers for reboot resource
-  # This ensures reboot is triggered when kairos_config or hosts_file changes
-  reboot_triggers = {
-    for key, node in local.nodes :
-    key => sha256(join("", [
-      # Hash of kairos config content
-      sha256(templatefile(
-        node.role == "master"
-        ? "${path.module}/cloud-init/k3s-master.yaml"
-        : "${path.module}/cloud-init/k3s-worker.yaml",
-        {
-          NODE_IP   = node.host
-          MASTER_IP = local.master_ip
-          K3S_TOKEN = var.k3s_token
-        }
-      )),
-      # Hash of hosts entries
-      sha256(local.hosts_entries),
-      # Hash of NFS storage config
-      sha256(templatefile(
-        "${path.module}/cloud-init/nfs-storage.yaml",
-        {
-          NFS_SERVER      = var.nfs_server
-          NFS_EXPORT_PATH = var.nfs_export_path
-          NFS_MOUNT_OPTIONS = var.nfs_mount_options
-        }
-      ))
-    ]))
-  }
 }
 
 # Generate bootstrap cloud-init configs for each node
@@ -73,51 +43,46 @@ resource "local_file" "bootstrap_config" {
   directory_permission = "0755"
 }
 
-# Deploy all Kairos configuration files to temp location first
-# This allows us to check for changes before moving to /oem/ and triggering reboot
-resource "ssh_resource" "nfs_storage_config_temp" {
+# Deploy Kairos config files to nodes and trigger reboot
+# This resource only triggers when the content of config files changes (SHA256-based triggers)
+resource "null_resource" "kairos_config_deploy" {
   for_each = local.nodes
 
-  host        = each.value.host
-  user        = "kairos"
-  private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "10m"
-  retry_delay = "10s"
-
-  # Write to temp file
-  file {
-    content = templatefile(
+  triggers = {
+    # Hash of k3s config content (master or worker)
+    k3s_config_hash = sha256(templatefile(
+      each.value.role == "master"
+      ? "${path.module}/cloud-init/k3s-master.yaml"
+      : "${path.module}/cloud-init/k3s-worker.yaml",
+      {
+        NODE_IP   = each.value.host
+        MASTER_IP = local.master_ip
+        K3S_TOKEN = var.k3s_token
+      }
+    ))
+    # Hash of NFS storage config content
+    nfs_config_hash = sha256(templatefile(
       "${path.module}/cloud-init/nfs-storage.yaml",
       {
         NFS_SERVER      = var.nfs_server
         NFS_EXPORT_PATH = var.nfs_export_path
         NFS_MOUNT_OPTIONS = var.nfs_mount_options
       }
-    )
-
-    destination = "/tmp/92_nfs-storage.yaml.new"
+    ))
+    # Hash of hosts entries
+    hosts_hash = sha256(local.hosts_entries)
   }
 
-  commands = [
-    "test -f /tmp/92_nfs-storage.yaml.new && echo 'NFS config temp file created' || exit 1"
-  ]
-}
+  connection {
+    type        = "ssh"
+    host        = each.value.host
+    user        = "kairos"
+    private_key = file(pathexpand("~/.ssh/id_rsa"))
+    timeout     = "2m"
+  }
 
-resource "ssh_resource" "kairos_config_temp" {
-  for_each = local.nodes
-
-  depends_on = [
-    ssh_resource.nfs_storage_config_temp
-  ]
-
-  host        = each.value.host
-  user        = "kairos"
-  private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "10m"
-  retry_delay = "10s"
-
-  # Write to temp file
-  file {
+  # Copy k3s config to /tmp
+  provisioner "file" {
     content = templatefile(
       each.value.role == "master"
       ? "${path.module}/cloud-init/k3s-master.yaml"
@@ -128,119 +93,40 @@ resource "ssh_resource" "kairos_config_temp" {
         K3S_TOKEN = var.k3s_token
       }
     )
-
-    destination = "/tmp/91_k3s.yaml.new"
+    destination = "/tmp/91_k3s.yaml"
   }
 
-  commands = [
-    "test -f /tmp/91_k3s.yaml.new && echo 'Kairos config temp file created' || exit 1"
-  ]
-}
+  # Copy NFS storage config to /tmp
+  provisioner "file" {
+    content = templatefile(
+      "${path.module}/cloud-init/nfs-storage.yaml",
+      {
+        NFS_SERVER      = var.nfs_server
+        NFS_EXPORT_PATH = var.nfs_export_path
+        NFS_MOUNT_OPTIONS = var.nfs_mount_options
+      }
+    )
+    destination = "/tmp/92_nfs-storage.yaml"
+  }
 
-# Deploy all config files atomically to /oem/ only if changes are detected
-# This ensures only one reboot happens when all files are moved
-resource "ssh_resource" "kairos_config" {
-  for_each = local.nodes
-
-  depends_on = [
-    ssh_resource.kairos_config_temp,
-    ssh_resource.hosts_file
-  ]
-
-  host        = each.value.host
-  user        = "kairos"
-  private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "10m"
-  retry_delay = "10s"
-
-  # Check if files changed, then move all files atomically to /oem/
-  # Kairos will automatically reboot once files are in /oem/
-  commands = [
-    <<-EOT
-      # Check if any config files have changed
-      CHANGED=false
-      
-      # Check kairos config
-      if [ ! -f /oem/91_k3s.yaml ] || ! diff -q /tmp/91_k3s.yaml.new /oem/91_k3s.yaml >/dev/null 2>&1; then
-        CHANGED=true
-      fi
-      
-      # Check NFS storage config
-      if [ ! -f /oem/92_nfs-storage.yaml ] || ! diff -q /tmp/92_nfs-storage.yaml.new /oem/92_nfs-storage.yaml >/dev/null 2>&1; then
-        CHANGED=true
-      fi
-      
-      # Only move files if changes were detected
-      if [ "$CHANGED" = "true" ]; then
-        echo "Configuration changes detected, deploying to /oem/..."
-        sudo mv /tmp/91_k3s.yaml.new /oem/91_k3s.yaml
-        sudo mv /tmp/92_nfs-storage.yaml.new /oem/92_nfs-storage.yaml
-        echo "Files deployed. Kairos will reboot automatically."
-      else
-        echo "No configuration changes detected. Skipping deployment."
-        rm -f /tmp/91_k3s.yaml.new /tmp/92_nfs-storage.yaml.new
-      fi
-      
-      # Verify files exist
-      test -f /oem/91_k3s.yaml && test -f /oem/92_nfs-storage.yaml && echo 'Files verified' || exit 1
-    EOT
-  ]
-}
-
-resource "ssh_resource" "hosts_file" {
-  for_each = local.nodes
-
-  host        = each.value.host
-  user        = "kairos"
-  private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "10m"
-  retry_delay = "10s"
-
-  file {
+  # Copy hosts entries to /tmp
+  provisioner "file" {
     content     = local.hosts_entries
     destination = "/tmp/k3s-hosts-entries"
   }
 
-  commands = [
-    "sudo bash -c 'sed -i \"/# K3S cluster nodes/,/^$/d\" /etc/hosts || true'",
-    "sudo bash -c 'echo \"\" >> /etc/hosts'",
-    "sudo bash -c 'echo \"# K3S cluster nodes\" >> /etc/hosts'",
-    "sudo bash -c 'cat /tmp/k3s-hosts-entries >> /etc/hosts'",
-    "rm -f /tmp/k3s-hosts-entries"
-  ]
-}
-
-# Wait for nodes to come back online after Kairos-triggered reboot (if reboot happened)
-# Kairos automatically reboots when config files in /oem/ are changed
-resource "time_sleep" "wait_after_reboot" {
-  for_each = local.nodes
-
-  depends_on = [
-    ssh_resource.kairos_config
-  ]
-
-  create_duration = "120s"  # Wait 2 minutes for nodes to boot (if reboot occurred)
-}
-
-# Verify nodes are back online after reboot (if reboot happened)
-resource "ssh_resource" "verify_node_online" {
-  for_each = local.nodes
-
-  depends_on = [
-    time_sleep.wait_after_reboot
-  ]
-
-  host        = each.value.host
-  user        = "kairos"
-  private_key = file(pathexpand("~/.ssh/id_rsa"))
-  timeout     = "5m"
-  retry_delay = "10s"
-
-  # Simple command to verify SSH connectivity and node is responsive
-  # This will succeed even if no reboot happened (node is already online)
-  commands = [
-    "uptime",
-    "echo 'Node ${each.key} is online'"
-  ]
+  # Move files to /oem/, update /etc/hosts, and reboot
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mv /tmp/91_k3s.yaml /oem/91_k3s.yaml",
+      "sudo mv /tmp/92_nfs-storage.yaml /oem/92_nfs-storage.yaml",
+      "sudo bash -c 'sed -i \"/# K3S cluster nodes/,/^$/d\" /etc/hosts || true'",
+      "sudo bash -c 'echo \"\" >> /etc/hosts'",
+      "sudo bash -c 'echo \"# K3S cluster nodes\" >> /etc/hosts'",
+      "sudo bash -c 'cat /tmp/k3s-hosts-entries >> /etc/hosts'",
+      "rm -f /tmp/k3s-hosts-entries",
+      "sudo nohup sh -c 'sleep 5 && reboot' > /dev/null 2>&1 &"
+    ]
+  }
 }
 
