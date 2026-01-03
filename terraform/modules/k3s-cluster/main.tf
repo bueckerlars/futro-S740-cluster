@@ -1,5 +1,9 @@
-# Generate /etc/hosts entries for all nodes
+# K3S Cluster Module
+# Handles node bootstrap, cloud-init generation, and K3S deployment
+
 locals {
+  nodes = var.nodes
+
   # Helper function to format worker hostnames with hyphen
   format_hostname = {
     for key, node in local.nodes :
@@ -27,7 +31,7 @@ resource "local_file" "bootstrap_config" {
   for_each = local.nodes
 
   content = templatefile(
-    "${path.module}/cloud-init/bootstrap.yaml.tpl",
+    "${path.module}/../../cloud-init/bootstrap.yaml.tpl",
     {
       node_ip        = each.value.host
       hostname       = local.node_hostnames[each.key]
@@ -38,7 +42,7 @@ resource "local_file" "bootstrap_config" {
     }
   )
 
-  filename             = "${path.module}/cloud-init/generated/bootstrap-${each.key}.yaml"
+  filename             = "${path.module}/../../cloud-init/generated/bootstrap-${each.key}.yaml"
   file_permission      = "0644"
   directory_permission = "0755"
 }
@@ -52,8 +56,8 @@ resource "null_resource" "kairos_config_deploy" {
     # Hash of k3s config content (master or worker)
     k3s_config_hash = sha256(templatefile(
       each.value.role == "master"
-      ? "${path.module}/cloud-init/k3s-master.yaml"
-      : "${path.module}/cloud-init/k3s-worker.yaml",
+      ? "${path.module}/../../cloud-init/k3s-master.yaml"
+      : "${path.module}/../../cloud-init/k3s-worker.yaml",
       {
         NODE_IP   = each.value.host
         MASTER_IP = local.master_ip
@@ -62,10 +66,10 @@ resource "null_resource" "kairos_config_deploy" {
     ))
     # Hash of NFS storage config content
     nfs_config_hash = sha256(templatefile(
-      "${path.module}/cloud-init/nfs-storage.yaml",
+      "${path.module}/../../cloud-init/nfs-storage.yaml",
       {
-        NFS_SERVER        = var.nfs_server
-        NFS_EXPORT_PATH   = var.nfs_export_path
+        NFS_SERVER      = var.nfs_server
+        NFS_EXPORT_PATH = var.nfs_export_path
         NFS_MOUNT_OPTIONS = var.nfs_mount_options
       }
     ))
@@ -85,8 +89,8 @@ resource "null_resource" "kairos_config_deploy" {
   provisioner "file" {
     content = templatefile(
       each.value.role == "master"
-      ? "${path.module}/cloud-init/k3s-master.yaml"
-      : "${path.module}/cloud-init/k3s-worker.yaml",
+      ? "${path.module}/../../cloud-init/k3s-master.yaml"
+      : "${path.module}/../../cloud-init/k3s-worker.yaml",
       {
         NODE_IP   = each.value.host
         MASTER_IP = local.master_ip
@@ -99,10 +103,10 @@ resource "null_resource" "kairos_config_deploy" {
   # Copy NFS storage config to /tmp
   provisioner "file" {
     content = templatefile(
-      "${path.module}/cloud-init/nfs-storage.yaml",
+      "${path.module}/../../cloud-init/nfs-storage.yaml",
       {
-        NFS_SERVER        = var.nfs_server
-        NFS_EXPORT_PATH   = var.nfs_export_path
+        NFS_SERVER      = var.nfs_server
+        NFS_EXPORT_PATH = var.nfs_export_path
         NFS_MOUNT_OPTIONS = var.nfs_mount_options
       }
     )

@@ -1,0 +1,155 @@
+# Create monitoring namespace
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = var.namespace
+  }
+}
+
+# Local values for Helm chart
+locals {
+  prometheus_values = yamlencode({
+    prometheus = {
+      prometheusSpec = {
+        retention = "15d"
+        serviceMonitorSelectorNilUsesHelmValues = false
+        additionalScrapeConfigs = [
+          {
+            job_name        = "kubernetes-nodes-cadvisor"
+            scrape_interval = "10s"
+            scrape_timeout  = "10s"
+            scheme          = "https"
+            tls_config = {
+              ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            }
+            bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+            kubernetes_sd_configs = [
+              {
+                role = "node"
+              }
+            ]
+            relabel_configs = [
+              {
+                action = "labelmap"
+                regex  = "__meta_kubernetes_node_label_(.+)"
+              },
+              {
+                target_label = "__address__"
+                replacement  = "kubernetes.default.svc:443"
+              },
+              {
+                source_labels = ["__meta_kubernetes_node_name"]
+                regex         = "(.+)"
+                target_label  = "__metrics_path__"
+                replacement   = "/api/v1/nodes/${1}/proxy/metrics/cadvisor"
+              }
+            ]
+            metric_relabel_configs = [
+              {
+                action        = "replace"
+                source_labels = ["id"]
+                regex         = "^/machine\\.slice/machine-rkt\\\\x2d([^\\\\]+)\\.+/([^/]+)\\.service$"
+                target_label  = "rkt_container_name"
+                replacement   = "${2}-${1}"
+              },
+              {
+                action        = "replace"
+                source_labels = ["id"]
+                regex         = "^/system\\.slice/(.+)\\.service$"
+                target_label  = "systemd_service_name"
+                replacement   = "${1}"
+              }
+            ]
+          }
+        ]
+      }
+      service = {
+        type     = "NodePort"
+        nodePort = var.prometheus_nodeport
+      }
+    }
+    grafana = {
+      adminPassword = var.grafana_admin_password
+      service = {
+        type     = "NodePort"
+        nodePort = var.grafana_nodeport
+      }
+      sidecar = {
+        dashboards = {
+          enabled = true
+          label   = "grafana_dashboard"
+        }
+      }
+    }
+    prometheusOperator = {
+      enabled = true
+    }
+  })
+}
+
+# Helm Release for kube-prometheus-stack
+resource "helm_release" "kube_prometheus_stack" {
+  name       = "kube-prometheus-stack"
+  repository = "https://prometheus-community.github.io/helm-charts"
+  chart      = "kube-prometheus-stack"
+  version    = "58.0.0"
+  namespace  = kubernetes_namespace.monitoring.metadata[0].name
+
+  values = [
+    local.prometheus_values
+  ]
+
+  # Wait for Grafana to be ready
+  wait = true
+  timeout = 600
+}
+
+# Wait for Grafana service to be ready
+resource "time_sleep" "wait_for_grafana" {
+  depends_on = [helm_release.kube_prometheus_stack]
+
+  create_duration = "30s"
+}
+
+# Import Grafana Dashboard 315 via API
+resource "null_resource" "import_grafana_dashboard" {
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana
+  ]
+
+  triggers = {
+    grafana_url = "http://${var.master_ip}:${var.grafana_nodeport}"
+    dashboard_id = "315"
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Wait for Grafana to be accessible
+      max_attempts=30
+      attempt=0
+      while [ $attempt -lt $max_attempts ]; do
+        if curl -s -f -u admin:${var.grafana_admin_password} "http://${var.master_ip}:${var.grafana_nodeport}/api/health" > /dev/null 2>&1; then
+          echo "Grafana is ready"
+          break
+        fi
+        attempt=$((attempt + 1))
+        echo "Waiting for Grafana... attempt $attempt/$max_attempts"
+        sleep 5
+      done
+
+      # Import dashboard 315
+      curl -s -X POST \
+        -u admin:${var.grafana_admin_password} \
+        -H "Content-Type: application/json" \
+        -d '{"dashboardId": 315, "overwrite": true}' \
+        "http://${var.master_ip}:${var.grafana_nodeport}/api/dashboards/import" || \
+      curl -s -X POST \
+        -u admin:${var.grafana_admin_password} \
+        -H "Content-Type: application/json" \
+        -d '{"uid": "315", "overwrite": true}' \
+        "http://${var.master_ip}:${var.grafana_nodeport}/api/dashboards/db" || \
+      echo "Dashboard import attempted. You may need to import manually via Grafana UI: http://${var.master_ip}:${var.grafana_nodeport}/d/315"
+    EOT
+  }
+}
+

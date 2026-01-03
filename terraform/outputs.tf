@@ -18,3 +18,20 @@ output "nfs_provisioner_status" {
   value       = helm_release.nfs_provisioner.status
 }
 
+# Monitoring outputs
+output "prometheus_url" {
+  description = "URL to access Prometheus"
+  value       = module.monitoring.prometheus_url
+}
+
+output "grafana_url" {
+  description = "URL to access Grafana"
+  value       = module.monitoring.grafana_url
+}
+
+output "grafana_admin_password" {
+  description = "Admin password for Grafana"
+  value       = module.monitoring.grafana_admin_password
+  sensitive   = true
+}
+
