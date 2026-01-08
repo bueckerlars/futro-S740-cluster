@@ -44,3 +44,20 @@ variable "nfs_mount_options" {
   default     = "rw,sync,hard,intr"
 }
 
+variable "letsencrypt_email" {
+  type        = string
+  description = "Email address for Let's Encrypt certificate registration"
+  default     = ""
+}
+
+variable "domain" {
+  type        = string
+  description = "Domain name for Ingress (e.g., carvin.duckdns.org)"
+}
+
+variable "grafana_admin_password" {
+  type        = string
+  description = "Admin password for Grafana"
+  sensitive   = true
+}
+

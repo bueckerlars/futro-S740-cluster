@@ -5,7 +5,7 @@ output "prometheus_url" {
 
 output "grafana_url" {
   description = "URL to access Grafana"
-  value       = "http://${var.master_ip}:${var.grafana_nodeport}"
+  value       = "https://grafana.${var.domain}"
 }
 
 output "grafana_admin_password" {

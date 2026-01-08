@@ -28,3 +28,9 @@ variable "grafana_admin_password" {
   default     = "admin"
 }
 
+variable "domain" {
+  type        = string
+  description = "Domain name for Ingress (e.g., carvin.duckdns.org)"
+  default     = "carvin.duckdns.org"
+}
+

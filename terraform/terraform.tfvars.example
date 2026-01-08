@@ -26,6 +26,18 @@ nfs_export_path = "/mnt/SSD-Pool/k3s-storage"
 # Common options: rw (read-write), sync (synchronous writes), hard (hard mount), intr (interruptible)
 nfs_mount_options = "rw,sync,hard,intr"
 
+# Domain configuration
+# Domain name for Ingress
+domain = "<your-domain>"
+
+# Let's Encrypt configuration
+# Email address for Let's Encrypt certificate registration
+letsencrypt_email = "your-email@example.com"
+
+# Grafana configuration
+# Admin password for Grafana
+grafana_admin_password = "your-secure-password-here"
+
 # User configuration
 # Password hash for the kairos user
 # Generate with: openssl passwd -6 -salt $(openssl rand -base64 6)

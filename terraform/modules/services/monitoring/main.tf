@@ -70,8 +70,7 @@ locals {
     grafana = {
       adminPassword = var.grafana_admin_password
       service = {
-        type     = "NodePort"
-        nodePort = var.grafana_nodeport
+        type = "ClusterIP"
       }
       sidecar = {
         dashboards = {
@@ -108,6 +107,48 @@ resource "time_sleep" "wait_for_grafana" {
   depends_on = [helm_release.kube_prometheus_stack]
 
   create_duration = "30s"
+}
+
+# Ingress for Grafana
+resource "kubernetes_ingress_v1" "grafana" {
+  metadata {
+    name      = "grafana"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints"      = "web,websecure"
+      "traefik.ingress.kubernetes.io/router.tls.certresolver"  = "letsencrypt"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    tls {
+      hosts = ["grafana.${var.domain}"]
+      # secret_name entfernt - Traefik erstellt das Secret automatisch mit dem CertResolver
+    }
+    rule {
+      host = "grafana.${var.domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "kube-prometheus-stack-grafana"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana
+  ]
 }
 
 # Import Grafana Dashboard 315 via API
