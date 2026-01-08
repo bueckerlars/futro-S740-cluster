@@ -17,3 +17,19 @@ module "monitoring" {
   ]
 }
 
+# External services (services running on other servers)
+module "external_services" {
+  source = "./modules/services/external-services"
+  count  = length(var.external_services) > 0 ? 1 : 0
+
+  services                = var.external_services
+  namespace               = "default"
+  letsencrypt_certresolver = "letsencrypt"
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware
+  ]
+}
+

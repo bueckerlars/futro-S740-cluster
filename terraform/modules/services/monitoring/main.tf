@@ -109,13 +109,51 @@ resource "time_sleep" "wait_for_grafana" {
   create_duration = "30s"
 }
 
-# Ingress for Grafana
+# HTTP to HTTPS redirect Ingress for Grafana
+resource "kubernetes_ingress_v1" "grafana_http_redirect" {
+  metadata {
+    name      = "grafana-http-redirect"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    rule {
+      host = "grafana.${var.domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "kube-prometheus-stack-grafana"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana
+  ]
+}
+
+# HTTPS Ingress for Grafana
 resource "kubernetes_ingress_v1" "grafana" {
   metadata {
     name      = "grafana"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints"      = "web,websecure"
+      "traefik.ingress.kubernetes.io/router.entrypoints"      = "websecure"
       "traefik.ingress.kubernetes.io/router.tls.certresolver"  = "letsencrypt"
     }
   }

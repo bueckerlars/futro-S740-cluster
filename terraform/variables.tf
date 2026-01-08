@@ -61,3 +61,38 @@ variable "grafana_admin_password" {
   sensitive   = true
 }
 
+variable "traefik_middlewares" {
+  type = map(object({
+    headers = object({
+      frameDeny                = optional(bool)
+      sslRedirect              = optional(bool)
+      browserXssFilter         = optional(bool)
+      contentTypeNosniff       = optional(bool)
+      forceSTSHeader           = optional(bool)
+      stsIncludeSubdomains     = optional(bool)
+      stsPreload               = optional(bool)
+      stsSeconds               = optional(number)
+      customFrameOptionsValue  = optional(string)
+      customRequestHeaders     = optional(map(string), {})
+      customResponseHeaders    = optional(map(string), {})
+    })
+  }))
+  description = "Map of reusable Traefik middlewares. Key is middleware name, value contains headers configuration"
+  default     = {}
+}
+
+variable "external_services" {
+  type = map(object({
+    domain             = string
+    ip                 = string
+    port               = number
+    path               = optional(string, "/")
+    headers            = optional(map(string), {})
+    middlewares        = optional(list(string), [])
+    scheme             = optional(string, "http")
+    insecure_skip_verify = optional(bool, false)
+  }))
+  description = "Map of external services to expose via Traefik. Key is service name, value contains domain, internal IP, port, path, optional custom headers (service-specific), optional middleware names (reusable), scheme (http/https), and insecure_skip_verify (for self-signed certificates)"
+  default     = {}
+}
+
