@@ -47,3 +47,20 @@ module "vaultwarden" {
   ]
 }
 
+# Forgejo service (Git hosting platform)
+module "forgejo" {
+  source = "./modules/services/forgejo"
+
+  domain        = "git.${var.domain}"
+  local_domain  = var.local_domain
+  storage_size  = "100Gi"
+  admin_password = var.forgejo_admin_password
+  admin_email   = var.forgejo_admin_email
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware
+  ]
+}
+

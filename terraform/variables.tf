@@ -120,3 +120,15 @@ variable "vaultwarden_admin_token" {
   sensitive   = true
 }
 
+variable "forgejo_admin_password" {
+  type        = string
+  description = "Password for the Forgejo admin user (gitea_admin)"
+  sensitive   = true
+}
+
+variable "forgejo_admin_email" {
+  type        = string
+  description = "Email address for the Forgejo admin user"
+  default     = ""
+}
+
