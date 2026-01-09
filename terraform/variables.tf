@@ -52,7 +52,19 @@ variable "letsencrypt_email" {
 
 variable "domain" {
   type        = string
-  description = "Domain name for Ingress (e.g., carvin.duckdns.org)"
+  description = "Domain name for Ingress (e.g., example.com)"
+}
+
+variable "cloudflare_api_token" {
+  type        = string
+  description = "Cloudflare API Token for DNS management. Required for HTTP-01 Challenge with Cloudflare. Create token at: https://dash.cloudflare.com/profile/api-tokens. Requires Zone:DNS:Edit permissions for the domain."
+  sensitive   = true
+}
+
+variable "cloudflare_tunnel_token" {
+  type        = string
+  description = "Cloudflare Tunnel Token for cloudflared. Create token in Cloudflare Dashboard > Zero Trust > Tunnel > Create Tunnel > Token"
+  sensitive   = true
 }
 
 variable "grafana_admin_password" {

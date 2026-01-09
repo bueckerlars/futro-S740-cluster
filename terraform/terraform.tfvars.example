@@ -27,12 +27,23 @@ nfs_export_path = "/mnt/SSD-Pool/k3s-storage"
 nfs_mount_options = "rw,sync,hard,intr"
 
 # Domain configuration
-# Domain name for Ingress
+# Domain name for Ingress (e.g., example.com)
 domain = "<your-domain>"
 
 # Let's Encrypt configuration
 # Email address for Let's Encrypt certificate registration
 letsencrypt_email = "your-email@example.com"
+
+# Cloudflare configuration
+# API Token for Cloudflare DNS management (required for HTTP-01 Challenge with Cloudflare)
+# Create token at: https://dash.cloudflare.com/profile/api-tokens
+# Required permissions: Zone:DNS:Edit for your domain
+cloudflare_api_token = "<your-cloudflare-api-token>"
+
+# Tunnel Token for Cloudflare Tunnel (cloudflared)
+# Create token at: Cloudflare Dashboard > Zero Trust > Tunnel > Create Tunnel > Token
+# This token is used by cloudflared to establish the tunnel connection
+cloudflare_tunnel_token = "<your-cloudflare-tunnel-token>"
 
 # Grafana configuration
 # Admin password for Grafana

@@ -92,17 +92,20 @@ resource "kubernetes_manifest" "servers_transport" {
   }
 }
 
-# HTTP to HTTPS redirect Ingress for each external service
-resource "kubernetes_ingress_v1" "external_service_http_redirect" {
+# HTTP Ingress for each external service (no TLS, works without certificates)
+resource "kubernetes_ingress_v1" "external_service_http" {
   for_each = var.services
 
   metadata {
-    name      = "${each.key}-http-redirect"
+    name      = "${each.key}-http"
     namespace = var.namespace
-    annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
-    }
+    annotations = merge(
+      {
+        "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      },
+      # Build middleware list: reusable middlewares + service-specific headers middleware (if any)
+      lookup(local.middleware_annotations, each.key, {})
+    )
   }
 
   spec {
@@ -131,7 +134,8 @@ resource "kubernetes_ingress_v1" "external_service_http_redirect" {
   ]
 }
 
-# HTTPS Ingress for each external service
+# HTTPS Ingress for each external service (with TLS, requires certificates)
+# Note: Must include 'web' entrypoint for ACME HTTP challenge to work
 resource "kubernetes_ingress_v1" "external_service" {
   for_each = var.services
 
@@ -140,7 +144,7 @@ resource "kubernetes_ingress_v1" "external_service" {
     namespace = var.namespace
     annotations = merge(
       {
-        "traefik.ingress.kubernetes.io/router.entrypoints"      = "websecure"
+        "traefik.ingress.kubernetes.io/router.entrypoints"      = "web,websecure"
         "traefik.ingress.kubernetes.io/router.tls.certresolver" = var.letsencrypt_certresolver
       },
       # Set service scheme (http/https)

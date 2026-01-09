@@ -1,5 +1,6 @@
 # Traefik Configuration with Let's Encrypt
 # Configures the built-in Traefik Ingress Controller in K3S to use Let's Encrypt for TLS certificates
+# Uses HTTP Challenge (works with Cloudflare Tunnel as it provides public access)
 
 resource "kubernetes_manifest" "traefik_helmchartconfig" {
   manifest = {

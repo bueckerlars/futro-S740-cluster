@@ -20,6 +20,10 @@ terraform {
       source  = "hashicorp/null"
       version = "~> 3.2"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -37,5 +41,11 @@ provider "helm" {
   kubernetes {
     config_path = pathexpand("~/.kube/config")
   }
+}
+
+# Cloudflare Provider configuration
+# Uses API token for DNS management
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 

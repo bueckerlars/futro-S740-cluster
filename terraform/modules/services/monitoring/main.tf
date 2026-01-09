@@ -109,14 +109,13 @@ resource "time_sleep" "wait_for_grafana" {
   create_duration = "30s"
 }
 
-# HTTP to HTTPS redirect Ingress for Grafana
-resource "kubernetes_ingress_v1" "grafana_http_redirect" {
+# HTTP Ingress for Grafana (no TLS, works without certificates)
+resource "kubernetes_ingress_v1" "grafana_http" {
   metadata {
-    name      = "grafana-http-redirect"
+    name      = "grafana-http"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 
@@ -147,14 +146,15 @@ resource "kubernetes_ingress_v1" "grafana_http_redirect" {
   ]
 }
 
-# HTTPS Ingress for Grafana
+# HTTPS Ingress for Grafana (with TLS, requires certificates)
+# Note: Must include 'web' entrypoint for ACME HTTP challenge to work
 resource "kubernetes_ingress_v1" "grafana" {
   metadata {
     name      = "grafana"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints"      = "websecure"
-      "traefik.ingress.kubernetes.io/router.tls.certresolver"  = "letsencrypt"
+      "traefik.ingress.kubernetes.io/router.entrypoints"     = "web,websecure"
+      "traefik.ingress.kubernetes.io/router.tls.certresolver" = "letsencrypt"
     }
   }
 
