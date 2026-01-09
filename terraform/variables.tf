@@ -108,3 +108,9 @@ variable "external_services" {
   default     = {}
 }
 
+variable "vaultwarden_admin_token" {
+  type        = string
+  description = "Admin token for Vaultwarden admin panel. Generate a secure random token (e.g., using openssl rand -base64 32)"
+  sensitive   = true
+}
+

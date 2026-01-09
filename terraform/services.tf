@@ -33,3 +33,17 @@ module "external_services" {
   ]
 }
 
+# Vaultwarden service (Bitwarden-compatible password manager)
+module "vaultwarden" {
+  source = "./modules/services/vaultwarden"
+
+  domain       = "bitwarden.${var.domain}"
+  admin_token  = var.vaultwarden_admin_token
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware
+  ]
+}
+
