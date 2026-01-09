@@ -55,6 +55,12 @@ variable "domain" {
   description = "Domain name for Ingress (e.g., example.com)"
 }
 
+variable "local_domain" {
+  type        = string
+  description = "Local domain name for Ingress (e.g., homelab.local). Used for local network access with self-signed certificates"
+  default     = ""
+}
+
 variable "cloudflare_api_token" {
   type        = string
   description = "Cloudflare API Token for DNS management. Required for HTTP-01 Challenge with Cloudflare. Create token at: https://dash.cloudflare.com/profile/api-tokens. Requires Zone:DNS:Edit permissions for the domain."

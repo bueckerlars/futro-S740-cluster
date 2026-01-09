@@ -21,3 +21,8 @@ override.tf.json
 .terraform.tfstate.lock.info
 .terraform/
 terraform/cloud-init/generated/
+# Certificate files (contain sensitive keys)
+*.key
+*.csr
+*.crt
+

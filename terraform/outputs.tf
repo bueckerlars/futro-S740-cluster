@@ -19,19 +19,31 @@ output "nfs_provisioner_status" {
 }
 
 # Monitoring outputs
-output "prometheus_url" {
-  description = "URL to access Prometheus"
-  value       = module.monitoring.prometheus_url
+output "prometheus_urls" {
+  description = "URLs to access Prometheus (all domains)"
+  value       = module.monitoring.prometheus_urls
 }
 
-output "grafana_url" {
-  description = "URL to access Grafana"
-  value       = module.monitoring.grafana_url
+output "grafana_urls" {
+  description = "URLs to access Grafana (all domains)"
+  value       = module.monitoring.grafana_urls
 }
 
 output "grafana_admin_password" {
   description = "Admin password for Grafana"
   value       = module.monitoring.grafana_admin_password
   sensitive   = true
+}
+
+# External services outputs
+output "external_service_urls" {
+  description = "URLs to access external services (all domains)"
+  value       = length(var.external_services) > 0 ? module.external_services[0].service_urls : {}
+}
+
+# Vaultwarden outputs
+output "vaultwarden_urls" {
+  description = "URLs to access Vaultwarden (all domains)"
+  value       = module.vaultwarden.vaultwarden_urls
 }
 

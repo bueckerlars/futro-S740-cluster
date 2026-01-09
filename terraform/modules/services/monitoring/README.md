@@ -16,15 +16,15 @@ The monitoring module provides:
 
 ### Prometheus
 
-- **Service Type**: NodePort
-- **Default Port**: 30909
+- **Service Type**: ClusterIP
+- **Access**: Via Ingress on local domain (e.g., `prometheus.homelab.local`)
 - **Retention**: 15 days
 - **Scrape Config**: Configured for cAdvisor metrics via Kubernetes API proxy
 
 ### Grafana
 
-- **Service Type**: NodePort
-- **Default Port**: 30300
+- **Service Type**: ClusterIP
+- **Access**: Via Ingress on external domain (e.g., `grafana.example.com`) and local domain (e.g., `grafana.homelab.local`)
 - **Default Username**: `admin`
 - **Default Password**: `admin` (configurable)
 - **Dashboard Auto-Import**: Attempts to automatically import Dashboard 315
@@ -39,7 +39,9 @@ The monitoring module provides:
 - Kubernetes cluster must be running and accessible
 - Helm provider configured with access to the cluster
 - Kubernetes provider configured with valid kubeconfig
-- Network access to master node IP address
+- Traefik Ingress Controller configured and running
+- DNS records configured for external domain (if using external domain)
+- DNS records configured for local domain (if using local domain)
 
 ## Usage
 
@@ -49,9 +51,8 @@ The monitoring module provides:
 module "monitoring" {
   source = "./modules/services/monitoring"
 
-  master_ip              = "192.168.1.100"
-  prometheus_nodeport    = 30909
-  grafana_nodeport       = 30300
+  domain                 = "<your-domain>"
+  local_domain            = "<your-local-domain>"  # Optional, e.g., "homelab.local"
   grafana_admin_password = "secure-password"
 
   depends_on = [
@@ -67,10 +68,9 @@ module "monitoring" {
 module "monitoring" {
   source = "./modules/services/monitoring"
 
-  master_ip              = local.master_ip
   namespace              = "custom-monitoring"
-  prometheus_nodeport    = 30909
-  grafana_nodeport       = 30300
+  domain                 = "<your-domain>"
+  local_domain            = "<your-local-domain>"
   grafana_admin_password = var.grafana_password
 }
 ```
@@ -80,26 +80,28 @@ module "monitoring" {
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `namespace` | `string` | `"monitoring"` | Namespace for monitoring resources |
-| `prometheus_nodeport` | `number` | `30909` | NodePort for Prometheus service |
-| `grafana_nodeport` | `number` | `30300` | NodePort for Grafana service |
-| `master_ip` | `string` | *required* | IP address of the master node for URL outputs |
+| `domain` | `string` | *required* | External domain name for Grafana Ingress (e.g., `example.com`) |
+| `local_domain` | `string` | `""` | Local domain name for Ingress (e.g., `homelab.local`). Used for local network access with self-signed certificates |
 | `grafana_admin_password` | `string` | `"admin"` | Admin password for Grafana (sensitive) |
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `prometheus_url` | Full URL to access Prometheus UI |
-| `grafana_url` | Full URL to access Grafana UI |
+| `prometheus_urls` | URLs to access Prometheus UI (all domains, e.g., `{ local = "https://prometheus.homelab.local" }`) |
+| `grafana_urls` | URLs to access Grafana UI (all domains, e.g., `{ external = "https://grafana.example.com", local = "https://grafana.homelab.local" }`) |
 | `grafana_admin_password` | Admin password for Grafana (sensitive) |
 | `namespace` | Namespace where monitoring resources are deployed |
 
 ## Accessing Services
 
-After deployment, access the services via:
+After deployment, access the services via Ingress:
 
-- **Prometheus**: `http://<master-ip>:30909`
-- **Grafana**: `http://<master-ip>:30300`
+- **Prometheus**: `https://prometheus.<local-domain>` (e.g., `https://prometheus.homelab.local`)
+- **Grafana (External)**: `https://grafana.<domain>` (e.g., `https://grafana.example.com`)
+- **Grafana (Local)**: `https://grafana.<local-domain>` (e.g., `https://grafana.homelab.local`)
+
+**Note**: Prometheus is only accessible via the local domain. Grafana is accessible via both external and local domains.
 
 ### Grafana Login
 
@@ -109,8 +111,13 @@ After deployment, access the services via:
 You can retrieve the password from Terraform outputs:
 
 ```bash
-tofu output grafana_admin_password
+tofu output -module monitoring grafana_admin_password
 ```
+
+### TLS Certificates
+
+- **External Domain**: Uses Let's Encrypt certificates (automatically managed by Traefik)
+- **Local Domain**: Uses self-signed certificates (configured via TLS Store in `kube-system` namespace)
 
 ## Dashboard
 
@@ -163,16 +170,27 @@ The Prometheus Operator is configured to discover ServiceMonitors across all nam
    kubectl get svc -n monitoring
    ```
 
-3. **Verify NodePort assignment:**
+3. **Verify Ingress resources:**
    ```bash
-   kubectl get svc -n monitoring kube-prometheus-stack-prometheus
-   kubectl get svc -n monitoring kube-prometheus-stack-grafana
+   kubectl get ingress -n monitoring
+   ```
+
+4. **Check Ingress details:**
+   ```bash
+   kubectl describe ingress -n monitoring grafana
+   kubectl describe ingress -n monitoring prometheus-local
+   ```
+
+5. **Verify DNS resolution:**
+   ```bash
+   nslookup grafana.<your-domain>
+   nslookup prometheus.<your-local-domain>
    ```
 
 ### Prometheus Not Scraping Metrics
 
 1. **Check Prometheus targets:**
-   - Access Prometheus UI: `http://<master-ip>:30909`
+   - Access Prometheus UI: `https://prometheus.<your-local-domain>`
    - Navigate to **Status** → **Targets**
    - Verify `kubernetes-nodes-cadvisor` job is present and healthy
 
@@ -199,7 +217,11 @@ If the automatic dashboard import fails:
 
 3. **Verify Grafana API access:**
    ```bash
-   curl -u admin:<password> http://<master-ip>:30300/api/health
+   # Via external domain
+   curl -k -u admin:<password> https://grafana.<your-domain>/api/health
+   
+   # Via local domain
+   curl -k -u admin:<password> https://grafana.<your-local-domain>/api/health
    ```
 
 ### Filesystem Usage Shows N/A
@@ -229,10 +251,12 @@ The module uses the default StorageClass for persistent volumes. Ensure your clu
 
 ## Security Considerations
 
-- **NodePort Services**: Accessible on all cluster nodes. Consider firewall rules to restrict access.
+- **Ingress Access**: Services are accessible via Ingress only. No direct NodePort exposure.
+- **TLS Encryption**: All services use HTTPS (Let's Encrypt for external domain, self-signed for local domain).
 - **Default Password**: Change the default Grafana admin password in production.
-- **Network Access**: Services are accessible via master IP. Ensure network security policies are in place.
+- **Network Access**: Ensure DNS records point to your cluster and network security policies are in place.
 - **RBAC**: Prometheus Operator creates necessary RBAC resources automatically.
+- **Local Domain**: Self-signed certificates require client-side trust configuration (see certs/README.md).
 
 ## Upgrading
 

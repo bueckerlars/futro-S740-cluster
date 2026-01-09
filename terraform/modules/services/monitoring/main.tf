@@ -63,8 +63,7 @@ locals {
         ]
       }
       service = {
-        type     = "NodePort"
-        nodePort = var.prometheus_nodeport
+        type = "ClusterIP"
       }
     }
     grafana = {
@@ -189,25 +188,195 @@ resource "kubernetes_ingress_v1" "grafana" {
   ]
 }
 
-# Import Grafana Dashboard 315 via API
-resource "null_resource" "import_grafana_dashboard" {
+# HTTPS Ingress for Grafana local domain (with self-signed TLS certificate)
+# Uses the default TLS store in kube-system namespace
+resource "kubernetes_ingress_v1" "grafana_local" {
+  count = var.local_domain != "" ? 1 : 0
+
+  metadata {
+    name      = "grafana-local"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
+      # Use default TLS store (no certresolver, uses default certificate from TLSStore)
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    tls {
+      hosts = ["grafana.${var.local_domain}"]
+      # No secret_name - uses default certificate from TLSStore
+    }
+    rule {
+      host = "grafana.${var.local_domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "kube-prometheus-stack-grafana"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   depends_on = [
     helm_release.kube_prometheus_stack,
     time_sleep.wait_for_grafana
   ]
+}
+
+# HTTP Ingress for Grafana local domain (redirects to HTTPS)
+resource "kubernetes_ingress_v1" "grafana_local_http" {
+  count = var.local_domain != "" ? 1 : 0
+
+  metadata {
+    name      = "grafana-local-http"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    rule {
+      host = "grafana.${var.local_domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "kube-prometheus-stack-grafana"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana
+  ]
+}
+
+# HTTPS Ingress for Prometheus local domain (with self-signed TLS certificate)
+resource "kubernetes_ingress_v1" "prometheus_local" {
+  count = var.local_domain != "" ? 1 : 0
+
+  metadata {
+    name      = "prometheus-local"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
+      # Use default TLS store (no certresolver, uses default certificate from TLSStore)
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    tls {
+      hosts = ["prometheus.${var.local_domain}"]
+      # No secret_name - uses default certificate from TLSStore
+    }
+    rule {
+      host = "prometheus.${var.local_domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "kube-prometheus-stack-prometheus"
+              port {
+                number = 9090
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana
+  ]
+}
+
+# HTTP Ingress for Prometheus local domain (redirects to HTTPS)
+resource "kubernetes_ingress_v1" "prometheus_local_http" {
+  count = var.local_domain != "" ? 1 : 0
+
+  metadata {
+    name      = "prometheus-local-http"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    rule {
+      host = "prometheus.${var.local_domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "kube-prometheus-stack-prometheus"
+              port {
+                number = 9090
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana
+  ]
+}
+
+# Import Grafana Dashboard 315 via API
+resource "null_resource" "import_grafana_dashboard" {
+  depends_on = [
+    helm_release.kube_prometheus_stack,
+    time_sleep.wait_for_grafana,
+    kubernetes_ingress_v1.grafana
+  ]
 
   triggers = {
-    grafana_url = "http://${var.master_ip}:${var.grafana_nodeport}"
+    grafana_url = "https://grafana.${var.domain}"
     dashboard_id = "315"
   }
 
   provisioner "local-exec" {
     command = <<-EOT
-      # Wait for Grafana to be accessible
+      # Wait for Grafana to be accessible via Ingress
       max_attempts=30
       attempt=0
       while [ $attempt -lt $max_attempts ]; do
-        if curl -s -f -u admin:${var.grafana_admin_password} "http://${var.master_ip}:${var.grafana_nodeport}/api/health" > /dev/null 2>&1; then
+        if curl -s -f -k -u admin:${var.grafana_admin_password} "https://grafana.${var.domain}/api/health" > /dev/null 2>&1; then
           echo "Grafana is ready"
           break
         fi
@@ -218,16 +387,18 @@ resource "null_resource" "import_grafana_dashboard" {
 
       # Import dashboard 315
       curl -s -X POST \
+        -k \
         -u admin:${var.grafana_admin_password} \
         -H "Content-Type: application/json" \
         -d '{"dashboardId": 315, "overwrite": true}' \
-        "http://${var.master_ip}:${var.grafana_nodeport}/api/dashboards/import" || \
+        "https://grafana.${var.domain}/api/dashboards/import" || \
       curl -s -X POST \
+        -k \
         -u admin:${var.grafana_admin_password} \
         -H "Content-Type: application/json" \
         -d '{"uid": "315", "overwrite": true}' \
-        "http://${var.master_ip}:${var.grafana_nodeport}/api/dashboards/db" || \
-      echo "Dashboard import attempted. You may need to import manually via Grafana UI: http://${var.master_ip}:${var.grafana_nodeport}/d/315"
+        "https://grafana.${var.domain}/api/dashboards/db" || \
+      echo "Dashboard import attempted. You may need to import manually via Grafana UI: https://grafana.${var.domain}/d/315"
     EOT
   }
 }

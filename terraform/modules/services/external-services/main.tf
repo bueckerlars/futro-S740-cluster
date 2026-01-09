@@ -212,3 +212,97 @@ resource "kubernetes_manifest" "headers_middleware" {
   }
 }
 
+# HTTPS Ingress for local domain (with self-signed TLS certificate)
+# Uses the default TLS store in kube-system namespace
+resource "kubernetes_ingress_v1" "external_service_local" {
+  for_each = var.local_domain != "" ? var.services : {}
+
+  metadata {
+    name      = "${each.key}-local"
+    namespace = var.namespace
+    annotations = merge(
+      {
+        "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
+        # Use default TLS store (no certresolver, uses default certificate from TLSStore)
+      },
+      # Set service scheme (http/https)
+      each.value.scheme == "https" ? {
+        "traefik.ingress.kubernetes.io/service.scheme" = "https"
+      } : {},
+      # Use ServersTransport if insecure_skip_verify is enabled
+      each.value.insecure_skip_verify ? {
+        "traefik.ingress.kubernetes.io/service.serversstransport" = "${var.namespace}-${each.key}-transport@kubernetescrd"
+      } : {},
+      # Build middleware list: reusable middlewares + service-specific headers middleware (if any)
+      lookup(local.middleware_annotations, each.key, {})
+    )
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    tls {
+      hosts = ["${each.key}.${var.local_domain}"]
+      # No secret_name - uses default certificate from TLSStore
+    }
+    rule {
+      host = "${each.key}.${var.local_domain}"
+      http {
+        path {
+          path      = each.value.path
+          path_type = "Prefix"
+          backend {
+            service {
+              name = each.key
+              port {
+                number = each.value.port
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    kubernetes_service_v1.external_service
+  ]
+}
+
+# HTTP Ingress for local domain (redirects to HTTPS)
+resource "kubernetes_ingress_v1" "external_service_local_http" {
+  for_each = var.local_domain != "" ? var.services : {}
+
+  metadata {
+    name      = "${each.key}-local-http"
+    namespace = var.namespace
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    rule {
+      host = "${each.key}.${var.local_domain}"
+      http {
+        path {
+          path      = each.value.path
+          path_type = "Prefix"
+          backend {
+            service {
+              name = each.key
+              port {
+                number = each.value.port
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    kubernetes_service_v1.external_service
+  ]
+}

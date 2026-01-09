@@ -5,11 +5,9 @@
 module "monitoring" {
   source = "./modules/services/monitoring"
 
-  master_ip              = local.master_ip
-  prometheus_nodeport    = 30909
-  grafana_nodeport       = 30300
   grafana_admin_password = var.grafana_admin_password
   domain                 = var.domain
+  local_domain            = var.local_domain
 
   depends_on = [
     null_resource.kubeconfig,
@@ -25,6 +23,7 @@ module "external_services" {
   services                = var.external_services
   namespace               = "default"
   letsencrypt_certresolver = "letsencrypt"
+  local_domain            = var.local_domain
 
   depends_on = [
     null_resource.kubeconfig,
@@ -39,6 +38,7 @@ module "vaultwarden" {
 
   domain       = "bitwarden.${var.domain}"
   admin_token  = var.vaultwarden_admin_token
+  local_domain = var.local_domain
 
   depends_on = [
     null_resource.kubeconfig,

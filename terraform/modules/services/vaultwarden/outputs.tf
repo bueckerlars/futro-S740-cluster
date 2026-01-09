@@ -1,6 +1,9 @@
-output "vaultwarden_url" {
-  description = "URL to access Vaultwarden"
-  value       = "https://${var.domain}"
+output "vaultwarden_urls" {
+  description = "URLs to access Vaultwarden (all domains)"
+  value = {
+    external = "https://${var.domain}"
+    local    = var.local_domain != "" ? "https://bitwarden.${var.local_domain}" : null
+  }
 }
 
 output "namespace" {

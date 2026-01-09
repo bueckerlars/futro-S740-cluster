@@ -148,8 +148,8 @@ The configuration uses explicit dependencies to ensure correct execution order:
 The configuration automatically sets up NFS storage mounts on all nodes and installs an NFS provisioner for dynamic volume provisioning:
 
 - **Mount Point**: `/var/lib/k3s/storage` (standard k3s persistent volume path)
-- **NFS Server**: Configurable via `nfs_server` variable (default: `192.168.178.10`)
-- **Export Path**: Configurable via `nfs_export_path` variable (default: `/mnt/SSD-Pool/k3s-storage`)
+- **NFS Server**: Configurable via `nfs_server` variable (default: `<nfs-server-ip>`)
+- **Export Path**: Configurable via `nfs_export_path` variable (default: `<nfs-export-path>`)
 - **Mount Options**: Configurable via `nfs_mount_options` variable (default: `rw,sync,hard,intr`)
 - **Persistence**: Mount is added to `/etc/fstab` for automatic mounting on boot
 - **Scope**: Applied to all nodes (master and worker)
@@ -280,7 +280,7 @@ spec:
 1. Add node to `nodes` map in `terraform.tfvars`:
    ```hcl
    worker4 = {
-     host = "192.168.178.19"
+     host = "<node-ip>"
      role = "worker"
    }
    ```

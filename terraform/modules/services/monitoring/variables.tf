@@ -4,23 +4,6 @@ variable "namespace" {
   default     = "monitoring"
 }
 
-variable "prometheus_nodeport" {
-  type        = number
-  description = "NodePort for Prometheus service"
-  default     = 30909
-}
-
-variable "grafana_nodeport" {
-  type        = number
-  description = "NodePort for Grafana service"
-  default     = 30300
-}
-
-variable "master_ip" {
-  type        = string
-  description = "IP address of the master node for URL outputs"
-}
-
 variable "grafana_admin_password" {
   type        = string
   description = "Admin password for Grafana"
@@ -30,7 +13,12 @@ variable "grafana_admin_password" {
 
 variable "domain" {
   type        = string
-  description = "Domain name for Ingress (e.g., carvin.duckdns.org)"
-  default     = "carvin.duckdns.org"
+  description = "Domain name for Ingress (e.g., example.com)"
+}
+
+variable "local_domain" {
+  type        = string
+  description = "Local domain name for Ingress (e.g., homelab.local). Used for local network access with self-signed certificates"
+  default     = ""
 }
 

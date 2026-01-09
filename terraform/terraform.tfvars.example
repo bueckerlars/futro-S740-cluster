@@ -9,18 +9,18 @@ k3s_token = "K10YOUR_K3S_TOKEN_HERE::server:YOUR_SERVER_TOKEN_HERE"
 
 # Network configuration
 # DNS server IP address (optional, has default)
-dns_server = "192.168.1.11"
+dns_server = "<dns-server-ip>"
 
 # Gateway IP address (optional, has default)
-gateway = "192.168.1.1"
+gateway = "<gateway-ip>"
 
 # NFS Storage configuration
 # NFS server IP address or hostname (optional, has default)
-nfs_server = "192.168.1.10"
+nfs_server = "<nfs-server-ip>"
 
 # NFS export path (optional, has default)
-# TrueNAS Scale 2025 path format
-nfs_export_path = "/mnt/SSD-Pool/k3s-storage"
+# Example: /mnt/pool/k3s-storage or /export/k3s-storage
+nfs_export_path = "<nfs-export-path>"
 
 # NFS mount options (optional, has default)
 # Common options: rw (read-write), sync (synchronous writes), hard (hard mount), intr (interruptible)
@@ -103,7 +103,7 @@ external_services = {
   # Example: Service without headers or middlewares
   # myapp = {
   #   domain = "myapp.<your-domain>"
-  #   ip     = "192.168.1.20"
+  #   ip     = "<external-server-ip>"
   #   port   = 8080
   #   path   = "/"
   # }
@@ -111,7 +111,7 @@ external_services = {
   # Example: Service using reusable middleware
   # nextcloud = {
   #   domain      = "nextcloud.<your-domain>"
-  #   ip          = "192.168.1.25"
+  #   ip          = "<external-server-ip>"
   #   port        = 80
   #   path        = "/"
   #   middlewares = ["standard-headers", "nextcloud-headers"]
@@ -120,7 +120,7 @@ external_services = {
   # Example: Service with service-specific headers (not reusable)
   # api = {
   #   domain  = "api.<your-domain>"
-  #   ip      = "192.168.1.30"
+  #   ip      = "<external-server-ip>"
   #   port    = 3000
   #   path    = "/api"
   #   headers = {
@@ -131,7 +131,7 @@ external_services = {
   # Example: Service using both reusable middleware and service-specific headers
   # webapp = {
   #   domain      = "webapp.<your-domain>"
-  #   ip          = "192.168.1.35"
+  #   ip          = "<external-server-ip>"
   #   port        = 8080
   #   path        = "/"
   #   middlewares = ["standard-headers"]
@@ -144,7 +144,7 @@ external_services = {
   # IMPORTANT: Use proxmox-headers middleware, not standard-headers, to avoid redirect loops
   # proxmox = {
   #   domain             = "pve.<your-domain>"
-  #   ip                 = "192.168.1.3"
+  #   ip                 = "<external-server-ip>"
   #   port               = 8006
   #   path               = "/"
   #   scheme             = "https"
@@ -155,7 +155,7 @@ external_services = {
   # Example: Service with HTTPS backend (e.g., Bitwarden)
   # bitwarden = {
   #   domain             = "bitwarden.<your-domain>"
-  #   ip                 = "192.168.1.4"
+  #   ip                 = "<external-server-ip>"
   #   port               = 9890
   #   path               = "/"
   #   scheme             = "https"
@@ -183,20 +183,20 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your-email@example.c
 nodes = {
   # Master node (required - exactly one)
   master = {
-    host = "192.168.1.15"
+    host = "<master-node-ip>"
     role = "master"
   }
   # Worker nodes 
   worker1 = {
-    host = "192.168.1.16"
+    host = "<worker-node-1-ip>"
     role = "worker"
   }
   worker2 = {
-    host = "192.168.1.17"
+    host = "<worker-node-2-ip>"
     role = "worker"
   }
   worker3 = {
-    host = "192.168.1.18"
+    host = "<worker-node-3-ip>"
     role = "worker"
   }
 }

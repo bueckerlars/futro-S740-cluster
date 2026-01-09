@@ -43,8 +43,8 @@ module "external_services" {
   services = {
     # Service using reusable middleware
     nextcloud = {
-      domain      = "nextcloud.carvin.duckdns.org"
-      ip          = "192.168.178.25"
+      domain      = "nextcloud.<your-domain>"
+      ip          = "<external-server-ip>"
       port        = 80
       path        = "/"
       middlewares = ["standard-headers", "nextcloud-headers"]
@@ -52,8 +52,8 @@ module "external_services" {
     
     # Service with service-specific headers (not reusable)
     api = {
-      domain  = "api.carvin.duckdns.org"
-      ip      = "192.168.178.30"
+      domain  = "api.<your-domain>"
+      ip      = "<external-server-ip>"
       port    = 3000
       path    = "/api"
       headers = {
@@ -63,8 +63,8 @@ module "external_services" {
     
     # Service using both reusable middleware and service-specific headers
     webapp = {
-      domain      = "webapp.carvin.duckdns.org"
-      ip          = "192.168.178.35"
+      domain      = "webapp.<your-domain>"
+      ip          = "<external-server-ip>"
       port        = 8080
       path        = "/"
       middlewares = ["standard-headers"]
@@ -112,7 +112,7 @@ Each service in the `services` map must have the following structure:
 
 | Name | Description |
 |------|-------------|
-| service_urls | Map of service names to their HTTPS URLs |
+| service_urls | Map of service names to their HTTPS URLs (all domains, e.g., `{ external = "https://service.example.com", local = "https://service.homelab.local" }`) |
 | service_names | List of created service names |
 
 ## How It Works
@@ -141,15 +141,15 @@ traefik_middlewares = {
 
 external_services = {
   service1 = {
-    domain      = "service1.example.com"
-    ip          = "192.168.1.10"
+    domain      = "service1.<your-domain>"
+    ip          = "<external-server-ip>"
     port        = 80
     middlewares = ["standard-headers"]  # Reuse the middleware
   }
   
   service2 = {
-    domain      = "service2.example.com"
-    ip          = "192.168.1.11"
+    domain      = "service2.<your-domain>"
+    ip          = "<external-server-ip>"
     port        = 80
     middlewares = ["standard-headers"]  # Same middleware, no duplication!
   }
@@ -163,8 +163,8 @@ For headers that are unique to a service (e.g., API keys, tokens), use the `head
 ```hcl
 external_services = {
   api = {
-    domain  = "api.example.com"
-    ip      = "192.168.1.20"
+    domain  = "api.<your-domain>"
+    ip      = "<external-server-ip>"
     port    = 3000
     headers = {
       "Authorization" = "Bearer secret-token"
@@ -181,8 +181,8 @@ You can use both reusable middlewares and service-specific headers:
 ```hcl
 external_services = {
   webapp = {
-    domain      = "webapp.example.com"
-    ip          = "192.168.1.30"
+    domain      = "webapp.<your-domain>"
+    ip          = "<external-server-ip>"
     port        = 8080
     middlewares = ["standard-headers"]  # Reusable
     headers = {
@@ -199,8 +199,8 @@ For services like Proxmox VE or TrueNAS that use self-signed certificates, you n
 ```hcl
 external_services = {
   proxmox = {
-    domain             = "pve.example.com"
-    ip                 = "192.168.1.3"
+    domain             = "pve.<your-domain>"
+    ip                 = "<external-server-ip>"
     port               = 8006
     scheme             = "https"           # Use HTTPS for backend
     insecure_skip_verify = true            # Skip certificate verification
@@ -208,8 +208,8 @@ external_services = {
   }
   
   truenas = {
-    domain             = "truenas.example.com"
-    ip                 = "192.168.1.10"
+    domain             = "truenas.<your-domain>"
+    ip                 = "<external-server-ip>"
     port               = 443
     scheme             = "https"
     insecure_skip_verify = true

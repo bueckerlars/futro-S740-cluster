@@ -39,3 +39,9 @@ variable "middleware_namespace" {
   default     = "default"
 }
 
+variable "local_domain" {
+  type        = string
+  description = "Local domain name for Ingress (e.g., homelab.local). Used for local network access with self-signed certificates"
+  default     = ""
+}
+

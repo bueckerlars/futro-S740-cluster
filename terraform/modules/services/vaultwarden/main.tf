@@ -248,3 +248,92 @@ resource "kubernetes_ingress_v1" "vaultwarden" {
   ]
 }
 
+# HTTPS Ingress for Vaultwarden local domain (with self-signed TLS certificate)
+# Uses the default TLS store in kube-system namespace
+resource "kubernetes_ingress_v1" "vaultwarden_local" {
+  count = var.local_domain != "" ? 1 : 0
+
+  metadata {
+    name      = "vaultwarden-local"
+    namespace = kubernetes_namespace.vaultwarden.metadata[0].name
+    annotations = merge(
+      {
+        "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
+        # Use default TLS store (no certresolver, uses default certificate from TLSStore)
+      },
+      length(var.middlewares) > 0 ? {
+        "traefik.ingress.kubernetes.io/router.middlewares" = join(",", [for m in var.middlewares : "${var.middleware_namespace}-${m}@kubernetescrd"])
+      } : {}
+    )
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    tls {
+      hosts = ["bitwarden.${var.local_domain}"]
+      # No secret_name - uses default certificate from TLSStore
+    }
+    rule {
+      host = "bitwarden.${var.local_domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service_v1.vaultwarden.metadata[0].name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    kubernetes_service_v1.vaultwarden,
+    time_sleep.wait_for_vaultwarden
+  ]
+}
+
+# HTTP Ingress for Vaultwarden local domain (redirects to HTTPS)
+resource "kubernetes_ingress_v1" "vaultwarden_local_http" {
+  count = var.local_domain != "" ? 1 : 0
+
+  metadata {
+    name      = "vaultwarden-local-http"
+    namespace = kubernetes_namespace.vaultwarden.metadata[0].name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    rule {
+      host = "bitwarden.${var.local_domain}"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service_v1.vaultwarden.metadata[0].name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    kubernetes_service_v1.vaultwarden,
+    time_sleep.wait_for_vaultwarden
+  ]
+}
