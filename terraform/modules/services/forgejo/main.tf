@@ -97,6 +97,48 @@ resource "time_sleep" "wait_for_forgejo" {
   create_duration = "30s"
 }
 
+# HTTP Ingress for Forgejo (no TLS, works without certificates)
+resource "kubernetes_ingress_v1" "forgejo_http" {
+  metadata {
+    name      = "forgejo-http"
+    namespace = kubernetes_namespace.forgejo.metadata[0].name
+    annotations = merge(
+      {
+        "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      },
+      length(var.middlewares) > 0 ? {
+        "traefik.ingress.kubernetes.io/router.middlewares" = join(",", [for m in var.middlewares : "${var.middleware_namespace}-${m}@kubernetescrd"])
+      } : {}
+    )
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+    rule {
+      host = var.domain
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "forgejo-http"
+              port {
+                number = 3000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.forgejo,
+    time_sleep.wait_for_forgejo
+  ]
+}
+
 # HTTPS Ingress for Forgejo (with TLS, requires certificates)
 # Note: Must include 'web' entrypoint for ACME HTTP challenge to work
 resource "kubernetes_ingress_v1" "forgejo" {
