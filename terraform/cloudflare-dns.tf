@@ -19,10 +19,21 @@ locals {
     for service in var.external_services : split(".", service.domain)[0]
   ]
   
-  # Add grafana subdomain from monitoring module
+  # Subdomains for deployed services (extracted from services.tf)
+  deployed_service_subdomains = [
+    "grafana",    # Monitoring module
+    "git",        # Forgejo module (git.${var.domain})
+    "bitwarden",  # Vaultwarden module (bitwarden.${var.domain})
+  ]
+  
+  # Root domain (for @ record)
+  root_domain = ["@"]
+  
+  # Combine all subdomains
   all_subdomains = concat(
     local.external_service_subdomains,
-    ["grafana"]
+    local.deployed_service_subdomains,
+    local.root_domain
   )
   
   # Create a set of unique subdomains
@@ -33,13 +44,16 @@ locals {
 resource "cloudflare_record" "tunnel_subdomains" {
   for_each = local.unique_subdomains
   
-  zone_id = data.cloudflare_zone.main.id
-  name    = each.value
-  type    = "CNAME"
-  content = local.tunnel_target
-  proxied = true  # Enable Cloudflare proxy (orange cloud)
+  zone_id        = data.cloudflare_zone.main.id
+  allow_overwrite = true  # Allow overwriting existing records
+  # Use @ for root domain, otherwise use the subdomain name
+  name           = each.value
+  type           = "CNAME"
+  content        = local.tunnel_target
+  proxied        = true  # Enable Cloudflare proxy (orange cloud)
   
-  comment = "Managed by Terraform for Cloudflare Tunnel - ${each.value}.${var.domain}"
+  # Format comment based on whether it's root domain or subdomain
+  comment = each.value == "@" ? "Managed by Terraform for Cloudflare Tunnel - ${var.domain}" : "Managed by Terraform for Cloudflare Tunnel - ${each.value}.${var.domain}"
   
   ttl = 1  # Auto TTL (managed by Cloudflare)
 }
