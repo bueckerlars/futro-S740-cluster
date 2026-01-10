@@ -50,3 +50,40 @@ variable "admin_email" {
   description = "Email address for the Forgejo admin user"
   default     = ""
 }
+
+variable "actions_enabled" {
+  type        = bool
+  description = "Enable Forgejo Actions"
+  default     = true
+}
+
+variable "runner_enabled" {
+  type        = bool
+  description = "Enable Forgejo Actions Runner deployment"
+  default     = true
+}
+
+variable "runner_token" {
+  type        = string
+  description = "Registration token for Forgejo Actions Runner (get from Forgejo UI: Settings → Actions → Runners → Create new Runner)"
+  sensitive   = true
+  default     = ""
+}
+
+variable "runner_labels" {
+  type        = list(string)
+  description = "Labels for the Forgejo Actions Runner. Format: 'ubuntu-latest:docker://node:18-bullseye' or 'docker:docker://docker:dind'. Leave empty to use defaults."
+  default     = []
+}
+
+variable "runner_replicas" {
+  type        = number
+  description = "Number of runner replicas"
+  default     = 1
+}
+
+variable "runner_name" {
+  type        = string
+  description = "Name for the Forgejo Actions Runner"
+  default     = ""
+}

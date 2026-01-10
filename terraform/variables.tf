@@ -132,3 +132,40 @@ variable "forgejo_admin_email" {
   default     = ""
 }
 
+variable "forgejo_actions_enabled" {
+  type        = bool
+  description = "Enable Forgejo Actions"
+  default     = true
+}
+
+variable "forgejo_runner_enabled" {
+  type        = bool
+  description = "Enable Forgejo Actions Runner deployment"
+  default     = true
+}
+
+variable "forgejo_runner_token" {
+  type        = string
+  description = "Registration token for Forgejo Actions Runner. Get from Forgejo UI: Settings → Actions → Runners → Create new Runner"
+  sensitive   = true
+  default     = ""
+}
+
+variable "forgejo_runner_labels" {
+  type        = list(string)
+  description = "Labels for the Forgejo Actions Runner (e.g., kubernetes, docker)"
+  default     = ["kubernetes"]
+}
+
+variable "forgejo_runner_replicas" {
+  type        = number
+  description = "Number of Forgejo Actions Runner replicas"
+  default     = 1
+}
+
+variable "forgejo_runner_name" {
+  type        = string
+  description = "Name for the Forgejo Actions Runner"
+  default     = ""
+}
+

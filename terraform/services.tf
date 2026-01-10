@@ -51,11 +51,19 @@ module "vaultwarden" {
 module "forgejo" {
   source = "./modules/services/forgejo"
 
-  domain        = "git.${var.domain}"
-  local_domain  = var.local_domain
-  storage_size  = "100Gi"
+  domain         = "git.${var.domain}"
+  local_domain   = var.local_domain
+  storage_size   = "100Gi"
   admin_password = var.forgejo_admin_password
-  admin_email   = var.forgejo_admin_email
+  admin_email    = var.forgejo_admin_email
+
+  # Actions configuration
+  actions_enabled = var.forgejo_actions_enabled
+  runner_enabled  = var.forgejo_runner_enabled
+  runner_token    = var.forgejo_runner_token
+  runner_labels   = var.forgejo_runner_labels
+  runner_replicas = var.forgejo_runner_replicas
+  runner_name     = var.forgejo_runner_name
 
   depends_on = [
     null_resource.kubeconfig,
