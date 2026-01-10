@@ -72,3 +72,13 @@ module "forgejo" {
   ]
 }
 
+# Portainer Agent service (Kubernetes cluster management agent)
+module "portainer_agent" {
+  source = "./modules/services/portainer-agent"
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster
+  ]
+}
+
