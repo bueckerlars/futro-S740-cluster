@@ -80,3 +80,50 @@ resource "helm_release" "nfs_provisioner" {
 # Note: StorageClass is automatically created by the Helm chart
 # with the name "nfs" and marked as default class
 
+# Install second NFS Subdir External Provisioner for /mnt/Storage/paperless
+# This provisioner is used specifically for Paperless NGX media volume
+resource "helm_release" "nfs_provisioner_storage" {
+  name       = "nfs-subdir-external-provisioner-storage"
+  repository = "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner"
+  chart      = "nfs-subdir-external-provisioner"
+  version    = "4.0.18"
+  namespace  = "kube-system"
+
+  depends_on = [
+    time_sleep.wait_for_cluster
+  ]
+
+  set {
+    name  = "nfs.server"
+    value = var.nfs_server
+  }
+
+  set {
+    name  = "nfs.path"
+    value = "/mnt/Storage"
+  }
+
+  set {
+    name  = "storageClass.name"
+    value = "nfs-storage"
+  }
+
+  set {
+    name  = "storageClass.defaultClass"
+    value = "false"
+  }
+
+  set {
+    name  = "storageClass.reclaimPolicy"
+    value = "Retain"
+  }
+
+  set {
+    name  = "storageClass.pathPattern"
+    value = "paperless/$${.PVC.namespace}/$${.PVC.name}"
+  }
+}
+
+# Note: StorageClass "nfs-storage" is automatically created by the Helm chart
+# This is used for volumes that should be stored on /mnt/Storage/paperless instead of the default NFS path
+

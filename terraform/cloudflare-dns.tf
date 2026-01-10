@@ -24,6 +24,7 @@ locals {
     "grafana",    # Monitoring module
     "git",        # Forgejo module (git.${var.domain})
     "bitwarden",  # Vaultwarden module (bitwarden.${var.domain})
+    "paperless",  # Paperless NGX module (paperless.${var.domain})
   ]
   
   # Root domain (for @ record)

@@ -82,3 +82,28 @@ module "portainer_agent" {
   ]
 }
 
+# Paperless NGX service (Document management system)
+module "paperless" {
+  source = "./modules/services/paperless"
+
+  domain         = "paperless.${var.domain}"
+  local_domain   = var.local_domain
+  nfs_server     = var.nfs_server
+  secret_key     = var.paperless_secret_key
+  time_zone      = var.paperless_time_zone
+  ocr_language   = var.paperless_ocr_language
+  ocr_languages  = var.paperless_ocr_languages
+  admin_user     = var.paperless_admin_user
+  admin_password = var.paperless_admin_password
+  storage_media_size   = var.paperless_storage_media_size
+  storage_data_size    = var.paperless_storage_data_size
+  storage_consume_size = var.paperless_storage_consume_size
+  storage_export_size  = var.paperless_storage_export_size
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware
+  ]
+}
+

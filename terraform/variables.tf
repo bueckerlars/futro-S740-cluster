@@ -169,3 +169,64 @@ variable "forgejo_runner_name" {
   default     = ""
 }
 
+variable "paperless_secret_key" {
+  type        = string
+  description = "Secret key for Paperless NGX. If not provided, will be auto-generated"
+  sensitive   = true
+  default     = ""
+}
+
+variable "paperless_time_zone" {
+  type        = string
+  description = "Time zone for Paperless NGX (e.g., Europe/Berlin)"
+  default     = "Europe/Berlin"
+}
+
+variable "paperless_ocr_language" {
+  type        = string
+  description = "Default OCR language for Paperless NGX (e.g., deu for German)"
+  default     = "deu"
+}
+
+variable "paperless_ocr_languages" {
+  type        = string
+  description = "Additional OCR languages for Paperless NGX (space-separated, e.g., 'eng deu')"
+  default     = "eng deu"
+}
+
+variable "paperless_storage_media_size" {
+  type        = string
+  description = "Size of persistent storage for Paperless NGX media volume"
+  default     = "50Gi"
+}
+
+variable "paperless_storage_data_size" {
+  type        = string
+  description = "Size of persistent storage for Paperless NGX data volume"
+  default     = "20Gi"
+}
+
+variable "paperless_storage_consume_size" {
+  type        = string
+  description = "Size of persistent storage for Paperless NGX consume volume"
+  default     = "10Gi"
+}
+
+variable "paperless_storage_export_size" {
+  type        = string
+  description = "Size of persistent storage for Paperless NGX export volume"
+  default     = "10Gi"
+}
+
+variable "paperless_admin_user" {
+  type        = string
+  description = "Username for the Paperless NGX admin user"
+  default     = "admin"
+}
+
+variable "paperless_admin_password" {
+  type        = string
+  description = "Password for the Paperless NGX admin user"
+  sensitive   = true
+}
+
