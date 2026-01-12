@@ -120,7 +120,7 @@ resource "helm_release" "nfs_provisioner_storage" {
 
   set {
     name  = "storageClass.pathPattern"
-    value = "paperless/$${.PVC.namespace}/$${.PVC.name}"
+    value = "paperless/$${.PVC.name}"
   }
 }
 
