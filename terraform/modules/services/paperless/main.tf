@@ -94,6 +94,24 @@ resource "kubernetes_persistent_volume_claim_v1" "paperless_export" {
   }
 }
 
+# PersistentVolumeClaim for PostgreSQL database (uses nfs-storage storage class)
+resource "kubernetes_persistent_volume_claim_v1" "paperless_postgresql" {
+  metadata {
+    name      = "paperless-postgresql"
+    namespace = kubernetes_namespace.paperless.metadata[0].name
+  }
+
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = {
+        storage = var.storage_postgresql_size
+      }
+    }
+    storage_class_name = "nfs-storage" # Uses second NFS provisioner for /mnt/Storage
+  }
+}
+
 # Local values for Helm chart
 locals {
   paperless_values = yamlencode({
@@ -173,6 +191,13 @@ locals {
         username = "paperless"
         password = "paperless" # Default password, should be changed in production
       }
+      # Bitnami PostgreSQL Chart uses primary.persistence for StatefulSet configuration
+      primary = {
+        persistence = {
+          enabled       = true
+          existingClaim = kubernetes_persistent_volume_claim_v1.paperless_postgresql.metadata[0].name
+        }
+      }
     }
   })
 }
@@ -196,7 +221,8 @@ resource "helm_release" "paperless" {
     kubernetes_persistent_volume_claim_v1.paperless_media,
     kubernetes_persistent_volume_claim_v1.paperless_data,
     kubernetes_persistent_volume_claim_v1.paperless_consume,
-    kubernetes_persistent_volume_claim_v1.paperless_export
+    kubernetes_persistent_volume_claim_v1.paperless_export,
+    kubernetes_persistent_volume_claim_v1.paperless_postgresql
   ]
 }
 

@@ -218,6 +218,12 @@ variable "paperless_storage_export_size" {
   default     = "10Gi"
 }
 
+variable "paperless_storage_postgresql_size" {
+  type        = string
+  description = "Size of persistent storage for Paperless NGX PostgreSQL database"
+  default     = "20Gi"
+}
+
 variable "paperless_admin_user" {
   type        = string
   description = "Username for the Paperless NGX admin user"

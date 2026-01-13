@@ -95,10 +95,11 @@ module "paperless" {
   ocr_languages  = var.paperless_ocr_languages
   admin_user     = var.paperless_admin_user
   admin_password = var.paperless_admin_password
-  storage_media_size   = var.paperless_storage_media_size
-  storage_data_size    = var.paperless_storage_data_size
-  storage_consume_size = var.paperless_storage_consume_size
-  storage_export_size  = var.paperless_storage_export_size
+  storage_media_size      = var.paperless_storage_media_size
+  storage_data_size       = var.paperless_storage_data_size
+  storage_consume_size    = var.paperless_storage_consume_size
+  storage_export_size     = var.paperless_storage_export_size
+  storage_postgresql_size = var.paperless_storage_postgresql_size
 
   depends_on = [
     null_resource.kubeconfig,
