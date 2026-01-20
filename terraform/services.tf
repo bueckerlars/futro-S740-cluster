@@ -7,7 +7,7 @@ module "monitoring" {
 
   grafana_admin_password = var.grafana_admin_password
   domain                 = var.domain
-  local_domain            = var.local_domain
+  local_domain           = var.local_domain
 
   depends_on = [
     null_resource.kubeconfig,
@@ -22,10 +22,10 @@ module "external_services" {
   source = "./modules/services/external-services"
   count  = length(var.external_services) > 0 ? 1 : 0
 
-  services                = var.external_services
-  namespace               = "default"
+  services                 = var.external_services
+  namespace                = "default"
   letsencrypt_certresolver = "letsencrypt"
-  local_domain            = var.local_domain
+  local_domain             = var.local_domain
 
   depends_on = [
     null_resource.kubeconfig,
@@ -91,15 +91,15 @@ module "portainer_agent" {
 module "paperless" {
   source = "./modules/services/paperless"
 
-  domain         = "paperless.${var.domain}"
-  local_domain   = var.local_domain
-  nfs_server     = var.nfs_server
-  secret_key     = var.paperless_secret_key
-  time_zone      = var.paperless_time_zone
-  ocr_language   = var.paperless_ocr_language
-  ocr_languages  = var.paperless_ocr_languages
-  admin_user     = var.paperless_admin_user
-  admin_password = var.paperless_admin_password
+  domain                  = "paperless.${var.domain}"
+  local_domain            = var.local_domain
+  nfs_server              = var.nfs_server
+  secret_key              = var.paperless_secret_key
+  time_zone               = var.paperless_time_zone
+  ocr_language            = var.paperless_ocr_language
+  ocr_languages           = var.paperless_ocr_languages
+  admin_user              = var.paperless_admin_user
+  admin_password          = var.paperless_admin_password
   storage_media_size      = var.paperless_storage_media_size
   storage_data_size       = var.paperless_storage_data_size
   storage_consume_size    = var.paperless_storage_consume_size

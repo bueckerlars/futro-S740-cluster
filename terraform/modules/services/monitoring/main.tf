@@ -10,7 +10,7 @@ locals {
   prometheus_values = yamlencode({
     prometheus = {
       prometheusSpec = {
-        retention = "15d"
+        retention                               = "15d"
         serviceMonitorSelectorNilUsesHelmValues = false
         additionalScrapeConfigs = [
           {
@@ -97,7 +97,7 @@ resource "helm_release" "kube_prometheus_stack" {
   ]
 
   # Wait for Grafana to be ready
-  wait = true
+  wait    = true
   timeout = 600
 }
 
@@ -114,8 +114,8 @@ resource "kubernetes_ingress_v1" "grafana_http" {
     name      = "grafana-http"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints"   = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 
@@ -155,7 +155,7 @@ resource "kubernetes_ingress_v1" "grafana" {
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints"      = "web,websecure"
       "traefik.ingress.kubernetes.io/router.tls.certresolver" = "letsencrypt"
-      "traefik.ingress.kubernetes.io/router.middlewares"    = "default-standard-headers@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares"      = "default-standard-headers@kubernetescrd"
     }
   }
 
@@ -199,7 +199,7 @@ resource "kubernetes_ingress_v1" "grafana_local" {
     name      = "grafana-local"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints"   = "websecure"
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
       "traefik.ingress.kubernetes.io/router.middlewares" = "default-standard-headers@kubernetescrd"
       # Use default TLS store (no certresolver, uses default certificate from TLSStore)
     }
@@ -245,7 +245,7 @@ resource "kubernetes_ingress_v1" "grafana_local_http" {
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 
@@ -284,7 +284,7 @@ resource "kubernetes_ingress_v1" "prometheus_local" {
     name      = "prometheus-local"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints"   = "websecure"
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
       "traefik.ingress.kubernetes.io/router.middlewares" = "default-standard-headers@kubernetescrd"
       # Use default TLS store (no certresolver, uses default certificate from TLSStore)
     }
@@ -330,7 +330,7 @@ resource "kubernetes_ingress_v1" "prometheus_local_http" {
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 
@@ -370,7 +370,7 @@ resource "null_resource" "import_grafana_dashboard" {
   ]
 
   triggers = {
-    grafana_url = "https://grafana.${var.domain}"
+    grafana_url  = "https://grafana.${var.domain}"
     dashboard_id = "315"
   }
 

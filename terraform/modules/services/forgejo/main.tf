@@ -38,11 +38,11 @@ locals {
       httpPort = 3000
     }
     ingress = {
-      enabled = false  # We'll manage ingress separately via Terraform
+      enabled = false # We'll manage ingress separately via Terraform
     }
     deployment = {
       strategy = {
-        type = "Recreate"  # Required for ReadWriteOnce volumes to avoid LevelDB lock conflicts
+        type = "Recreate" # Required for ReadWriteOnce volumes to avoid LevelDB lock conflicts
       }
     }
     gitea = {
@@ -82,7 +82,7 @@ resource "helm_release" "forgejo" {
   ]
 
   # Wait for Forgejo to be ready
-  wait = true
+  wait    = true
   timeout = 600
 
   depends_on = [
@@ -246,7 +246,7 @@ resource "kubernetes_ingress_v1" "forgejo_local_http" {
     namespace = kubernetes_namespace.forgejo.metadata[0].name
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 
@@ -281,22 +281,22 @@ resource "kubernetes_ingress_v1" "forgejo_local_http" {
 # Only create if runner is enabled and token is provided
 locals {
   runner_name = var.runner_name != "" ? var.runner_name : "forgejo-runner"
-  
+
   # Build runner labels with Docker-in-Docker support
   # Default labels provide ubuntu-latest and docker support
   runner_labels_formatted = length(var.runner_labels) > 0 ? var.runner_labels : ["ubuntu-latest:docker://node:18-bullseye", "docker:docker://docker:dind"]
-  
+
   # Helm values for Forgejo Runner
   # Based on the community chart structure from codeberg.org/wrenix/helm-charts
   forgejo_runner_values = yamlencode({
     replicaCount = var.runner_replicas
-    
+
     runner = {
       config = {
-        create = true  # Let the chart create the secret automatically
+        create   = true # Let the chart create the secret automatically
         instance = "http://forgejo-http.${kubernetes_namespace.forgejo.metadata[0].name}.svc.cluster.local:3000"
-        name = local.runner_name
-        token = var.runner_token
+        name     = local.runner_name
+        token    = var.runner_token
         file = {
           runner = {
             labels = local.runner_labels_formatted
@@ -307,7 +307,7 @@ locals {
         }
       }
     }
-    
+
     rbac = {
       create = true
     }

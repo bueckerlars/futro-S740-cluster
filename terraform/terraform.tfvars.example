@@ -44,10 +44,11 @@ cloudflare_api_token = "<your-cloudflare-api-token>"
 # Required for DNS-01 Challenge with Cloudflare. This is your Cloudflare account email.
 # cloudflare_email = "your-email@example.com"
 
-# Tunnel Token for Cloudflare Tunnel (cloudflared)
-# Create token at: Cloudflare Dashboard > Zero Trust > Tunnel > Create Tunnel > Token
-# This token is used by cloudflared to establish the tunnel connection
-cloudflare_tunnel_token = "<your-cloudflare-tunnel-token>"
+# DDNS bootstrap values (optional)
+# These are initial placeholder IPs for DNS-only records; the DDNS updater will replace them automatically.
+# ddns_bootstrap_ipv4 = "198.51.100.1"
+# ddns_bootstrap_ipv6 = "2001:db8::1"
+# ddns_enable_ipv6 = false
 
 # Grafana configuration
 # Admin password for Grafana

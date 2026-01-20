@@ -307,7 +307,7 @@ resource "kubernetes_ingress_v1" "vaultwarden_local_http" {
     namespace = kubernetes_namespace.vaultwarden.metadata[0].name
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 

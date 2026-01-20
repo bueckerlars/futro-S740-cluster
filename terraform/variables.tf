@@ -73,10 +73,22 @@ variable "cloudflare_email" {
   default     = ""
 }
 
-variable "cloudflare_tunnel_token" {
+variable "ddns_bootstrap_ipv4" {
   type        = string
-  description = "Cloudflare Tunnel Token for cloudflared. Create token in Cloudflare Dashboard > Zero Trust > Tunnel > Create Tunnel > Token"
-  sensitive   = true
+  description = "Initial placeholder IPv4 for DNS-only A records. DDNS updater will replace this value."
+  default     = "198.51.100.1"
+}
+
+variable "ddns_bootstrap_ipv6" {
+  type        = string
+  description = "Initial placeholder IPv6 for DNS-only AAAA records. DDNS updater will replace this value."
+  default     = "2001:db8::1"
+}
+
+variable "ddns_enable_ipv6" {
+  type        = bool
+  description = "Whether to manage IPv6 (AAAA records) for external DNS. Disable if your cluster cannot detect public IPv6 reliably."
+  default     = false
 }
 
 variable "grafana_admin_password" {
@@ -88,17 +100,17 @@ variable "grafana_admin_password" {
 variable "traefik_middlewares" {
   type = map(object({
     headers = object({
-      frameDeny                = optional(bool)
-      sslRedirect              = optional(bool)
-      browserXssFilter         = optional(bool)
-      contentTypeNosniff       = optional(bool)
-      forceSTSHeader           = optional(bool)
-      stsIncludeSubdomains     = optional(bool)
-      stsPreload               = optional(bool)
-      stsSeconds               = optional(number)
-      customFrameOptionsValue  = optional(string)
-      customRequestHeaders     = optional(map(string), {})
-      customResponseHeaders    = optional(map(string), {})
+      frameDeny               = optional(bool)
+      sslRedirect             = optional(bool)
+      browserXssFilter        = optional(bool)
+      contentTypeNosniff      = optional(bool)
+      forceSTSHeader          = optional(bool)
+      stsIncludeSubdomains    = optional(bool)
+      stsPreload              = optional(bool)
+      stsSeconds              = optional(number)
+      customFrameOptionsValue = optional(string)
+      customRequestHeaders    = optional(map(string), {})
+      customResponseHeaders   = optional(map(string), {})
     })
   }))
   description = "Map of reusable Traefik middlewares. Key is middleware name, value contains headers configuration"
@@ -107,13 +119,13 @@ variable "traefik_middlewares" {
 
 variable "external_services" {
   type = map(object({
-    domain             = string
-    ip                 = string
-    port               = number
-    path               = optional(string, "/")
-    headers            = optional(map(string), {})
-    middlewares        = optional(list(string), [])
-    scheme             = optional(string, "http")
+    domain               = string
+    ip                   = string
+    port                 = number
+    path                 = optional(string, "/")
+    headers              = optional(map(string), {})
+    middlewares          = optional(list(string), [])
+    scheme               = optional(string, "http")
     insecure_skip_verify = optional(bool, false)
   }))
   description = "Map of external services to expose via Traefik. Key is service name, value contains domain, internal IP, port, path, optional custom headers (service-specific), optional middleware names (reusable), scheme (http/https), and insecure_skip_verify (for self-signed certificates)"

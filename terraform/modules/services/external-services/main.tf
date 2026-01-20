@@ -12,7 +12,7 @@ locals {
       length(v.headers) > 0 ? ["${var.namespace}-${k}-headers@kubernetescrd"] : []
     )
   }
-  
+
   # Build annotations only if middlewares exist
   middleware_annotations = {
     for k, v in local.middleware_list : k => {
@@ -276,7 +276,7 @@ resource "kubernetes_ingress_v1" "external_service_local_http" {
     namespace = var.namespace
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 

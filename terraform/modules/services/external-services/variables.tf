@@ -1,12 +1,12 @@
 variable "services" {
   type = map(object({
-    domain             = string
-    ip                 = string
-    port               = number
-    path               = optional(string, "/")
-    headers            = optional(map(string), {})
-    middlewares        = optional(list(string), [])
-    scheme             = optional(string, "http")
+    domain               = string
+    ip                   = string
+    port                 = number
+    path                 = optional(string, "/")
+    headers              = optional(map(string), {})
+    middlewares          = optional(list(string), [])
+    scheme               = optional(string, "http")
     insecure_skip_verify = optional(bool, false)
   }))
   description = "Map of external services to expose via Traefik. Supports both service-specific headers and reusable middleware references. Use scheme='https' and insecure_skip_verify=true for services with self-signed certificates (e.g., Proxmox, TrueNAS)"

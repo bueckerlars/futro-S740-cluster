@@ -65,14 +65,14 @@ resource "kubernetes_deployment_v1" "portainer_agent" {
         service_account_name = kubernetes_service_account_v1.portainer_sa.metadata[0].name
 
         container {
-          name  = "portainer-agent"
-          image = var.agent_image
+          name              = "portainer-agent"
+          image             = var.agent_image
           image_pull_policy = "Always"
 
           port {
             container_port = 9001
-            protocol      = "TCP"
-            name          = "http"
+            protocol       = "TCP"
+            name           = "http"
           }
 
           env {

@@ -153,15 +153,15 @@ locals {
       }
     }
     env = {
-      TZ                    = var.time_zone # Container timezone
-      PAPERLESS_URL         = "https://${var.domain}"
-      PAPERLESS_TIME_ZONE   = var.time_zone
-      PAPERLESS_OCR_LANGUAGE = var.ocr_language
-      PAPERLESS_OCR_LANGUAGES = var.ocr_languages
-      PAPERLESS_SECRET_KEY  = local.paperless_secret_key
+      TZ                        = var.time_zone # Container timezone
+      PAPERLESS_URL             = "https://${var.domain}"
+      PAPERLESS_TIME_ZONE       = var.time_zone
+      PAPERLESS_OCR_LANGUAGE    = var.ocr_language
+      PAPERLESS_OCR_LANGUAGES   = var.ocr_languages
+      PAPERLESS_SECRET_KEY      = local.paperless_secret_key
       PAPERLESS_CONSUMPTION_DIR = "/usr/src/paperless/consume"
-      PAPERLESS_EXPORT_DIR  = "/usr/src/paperless/export"
-      PAPERLESS_DATA_DIR    = "/usr/src/paperless/data"
+      PAPERLESS_EXPORT_DIR      = "/usr/src/paperless/export"
+      PAPERLESS_DATA_DIR        = "/usr/src/paperless/data"
       # CSRF and security settings for reverse proxy
       # ALLOWED_HOSTS: Comma-separated list of allowed hostnames
       PAPERLESS_ALLOWED_HOSTS = var.local_domain != "" ? "${var.domain},paperless.${var.local_domain}" : var.domain
@@ -382,7 +382,7 @@ resource "kubernetes_ingress_v1" "paperless_local_http" {
     namespace = kubernetes_namespace.paperless.metadata[0].name
     annotations = {
       "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
     }
   }
 
