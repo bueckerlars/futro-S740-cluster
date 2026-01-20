@@ -92,7 +92,7 @@ resource "kubernetes_manifest" "servers_transport" {
   }
 }
 
-# HTTP Ingress for each external service (no TLS, works without certificates)
+# HTTP Ingress for each external service (redirects to HTTPS)
 resource "kubernetes_ingress_v1" "external_service_http" {
   for_each = var.services
 
@@ -102,9 +102,8 @@ resource "kubernetes_ingress_v1" "external_service_http" {
     annotations = merge(
       {
         "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
-      },
-      # Build middleware list: reusable middlewares + service-specific headers middleware (if any)
-      lookup(local.middleware_annotations, each.key, {})
+        "traefik.ingress.kubernetes.io/router.middlewares" = "default-https-redirect@kubernetescrd"
+      }
     )
   }
 

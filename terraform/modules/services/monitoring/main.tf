@@ -108,13 +108,14 @@ resource "time_sleep" "wait_for_grafana" {
   create_duration = "30s"
 }
 
-# HTTP Ingress for Grafana (no TLS, works without certificates)
+# HTTP Ingress for Grafana (redirects to HTTPS)
 resource "kubernetes_ingress_v1" "grafana_http" {
   metadata {
     name      = "grafana-http"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      "traefik.ingress.kubernetes.io/router.entrypoints"   = "web"
+      "traefik.ingress.kubernetes.io/router.middlewares"  = "default-https-redirect@kubernetescrd"
     }
   }
 
@@ -152,8 +153,9 @@ resource "kubernetes_ingress_v1" "grafana" {
     name      = "grafana"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints"     = "web,websecure"
+      "traefik.ingress.kubernetes.io/router.entrypoints"      = "web,websecure"
       "traefik.ingress.kubernetes.io/router.tls.certresolver" = "letsencrypt"
+      "traefik.ingress.kubernetes.io/router.middlewares"    = "default-standard-headers@kubernetescrd"
     }
   }
 
@@ -197,7 +199,8 @@ resource "kubernetes_ingress_v1" "grafana_local" {
     name      = "grafana-local"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
+      "traefik.ingress.kubernetes.io/router.entrypoints"   = "websecure"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-standard-headers@kubernetescrd"
       # Use default TLS store (no certresolver, uses default certificate from TLSStore)
     }
   }
@@ -281,7 +284,8 @@ resource "kubernetes_ingress_v1" "prometheus_local" {
     name      = "prometheus-local"
     namespace = kubernetes_namespace.monitoring.metadata[0].name
     annotations = {
-      "traefik.ingress.kubernetes.io/router.entrypoints" = "websecure"
+      "traefik.ingress.kubernetes.io/router.entrypoints"   = "websecure"
+      "traefik.ingress.kubernetes.io/router.middlewares" = "default-standard-headers@kubernetescrd"
       # Use default TLS store (no certresolver, uses default certificate from TLSStore)
     }
   }

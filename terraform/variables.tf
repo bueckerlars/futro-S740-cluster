@@ -63,8 +63,14 @@ variable "local_domain" {
 
 variable "cloudflare_api_token" {
   type        = string
-  description = "Cloudflare API Token for DNS management. Required for HTTP-01 Challenge with Cloudflare. Create token at: https://dash.cloudflare.com/profile/api-tokens. Requires Zone:DNS:Edit permissions for the domain."
+  description = "Cloudflare API Token for DNS management. Required for DNS-01 Challenge with Cloudflare. Create token at: https://dash.cloudflare.com/profile/api-tokens. Requires Zone:DNS:Edit permissions for the domain."
   sensitive   = true
+}
+
+variable "cloudflare_email" {
+  type        = string
+  description = "Cloudflare account email address. Required for DNS-01 Challenge with Cloudflare. This is your Cloudflare account email."
+  default     = ""
 }
 
 variable "cloudflare_tunnel_token" {

@@ -35,10 +35,14 @@ domain = "<your-domain>"
 letsencrypt_email = "your-email@example.com"
 
 # Cloudflare configuration
-# API Token for Cloudflare DNS management (required for HTTP-01 Challenge with Cloudflare)
+# API Token for Cloudflare DNS management (required for DNS-01 Challenge with Cloudflare)
 # Create token at: https://dash.cloudflare.com/profile/api-tokens
 # Required permissions: Zone:DNS:Edit for your domain
 cloudflare_api_token = "<your-cloudflare-api-token>"
+
+# Cloudflare account email (optional, defaults to letsencrypt_email if not set)
+# Required for DNS-01 Challenge with Cloudflare. This is your Cloudflare account email.
+# cloudflare_email = "your-email@example.com"
 
 # Tunnel Token for Cloudflare Tunnel (cloudflared)
 # Create token at: Cloudflare Dashboard > Zero Trust > Tunnel > Create Tunnel > Token

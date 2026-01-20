@@ -14,7 +14,7 @@ resource "kubernetes_manifest" "traefik_middleware" {
     spec = {
       headers = {
         for k, v in each.value.headers : k => v
-        if v != null && !(k == "customRequestHeaders" && length(v) == 0) && !(k == "customResponseHeaders" && length(v) == 0)
+        if v != null && !(k == "customRequestHeaders" && try(length(v), 0) == 0) && !(k == "customResponseHeaders" && try(length(v), 0) == 0)
       }
     }
   }

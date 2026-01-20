@@ -11,7 +11,9 @@ module "monitoring" {
 
   depends_on = [
     null_resource.kubeconfig,
-    time_sleep.wait_for_cluster
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
   ]
 }
 
@@ -28,7 +30,8 @@ module "external_services" {
   depends_on = [
     null_resource.kubeconfig,
     time_sleep.wait_for_cluster,
-    kubernetes_manifest.traefik_middleware
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
   ]
 }
 
@@ -43,7 +46,8 @@ module "vaultwarden" {
   depends_on = [
     null_resource.kubeconfig,
     time_sleep.wait_for_cluster,
-    kubernetes_manifest.traefik_middleware
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
   ]
 }
 
@@ -68,7 +72,8 @@ module "forgejo" {
   depends_on = [
     null_resource.kubeconfig,
     time_sleep.wait_for_cluster,
-    kubernetes_manifest.traefik_middleware
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
   ]
 }
 
@@ -104,7 +109,8 @@ module "paperless" {
   depends_on = [
     null_resource.kubeconfig,
     time_sleep.wait_for_cluster,
-    kubernetes_manifest.traefik_middleware
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
   ]
 }
 
