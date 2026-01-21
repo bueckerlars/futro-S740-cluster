@@ -206,6 +206,22 @@ nodes = {
   }
 }
 
+# Collabora Online configuration
+# Collaborative office suite based on LibreOffice
+# Admin username for Collabora Online admin console (default: "admin")
+# collabora_admin_user = "admin"
+
+# Admin password for Collabora Online admin console
+# Access the admin console at: https://office.<your-domain>/browser/dist/admin/admin.html
+collabora_admin_password = "your-secure-password-here"
+
+# List of allowed WOPI host domains
+# These are the domains that are allowed to access Collabora Online (e.g., Nextcloud)
+# IMPORTANT: Only include the CLIENT domains (Nextcloud), NOT the Collabora server domain itself
+# The domain variable accepts domain names only (without https:// prefix)
+# Example: ["nextcloud.example.com"]
+collabora_wopi_domains = ["nextcloud.<your-domain>"]
+
 # Notes:
 # - Hostnames are automatically generated:
 #   - Master: k3s-master

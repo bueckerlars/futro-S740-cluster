@@ -254,3 +254,21 @@ variable "paperless_admin_password" {
   sensitive   = true
 }
 
+variable "collabora_admin_user" {
+  type        = string
+  description = "Admin username for Collabora Online admin console"
+  default     = "admin"
+}
+
+variable "collabora_admin_password" {
+  type        = string
+  description = "Admin password for Collabora Online admin console"
+  sensitive   = true
+}
+
+variable "collabora_wopi_domains" {
+  type        = list(string)
+  description = "List of allowed WOPI host domains for Collabora Online (e.g., [\"office.carvin.cloud\", \"nextcloud.carvin.cloud\"])"
+  default     = []
+}
+

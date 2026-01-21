@@ -18,6 +18,7 @@ locals {
     "git",       # Forgejo module (git.${var.domain})
     "bitwarden", # Vaultwarden module (bitwarden.${var.domain})
     "paperless", # Paperless NGX module (paperless.${var.domain})
+    "office",    # Collabora Online module (office.${var.domain})
   ]
 
   # Root domain (for @ record)

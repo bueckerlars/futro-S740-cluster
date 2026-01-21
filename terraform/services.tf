@@ -114,3 +114,21 @@ module "paperless" {
   ]
 }
 
+# Collabora Online service (Collaborative office suite)
+module "collabora" {
+  source = "./modules/services/collabora"
+
+  domain         = "office.${var.domain}"
+  local_domain   = var.local_domain
+  admin_user     = var.collabora_admin_user
+  admin_password = var.collabora_admin_password
+  wopi_domains   = var.collabora_wopi_domains
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
+  ]
+}
+
