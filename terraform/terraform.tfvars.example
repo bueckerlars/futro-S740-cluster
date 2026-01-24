@@ -230,6 +230,20 @@ couchdb_admin_password = "your-secure-password-here"
 # Size of persistent storage for CouchDB data (default: "10Gi")
 # couchdb_storage_size = "10Gi"
 
+# Streaming services configuration (Tautulli + Overseerr)
+# Shared PUID/PGID for linuxserver images (default: 1000)
+# streaming_puid = 1000
+# streaming_pgid = 1000
+
+# Time zone for streaming services (default: "Europe/Berlin")
+# streaming_time_zone = "Europe/Berlin"
+
+# Size of persistent storage for Tautulli config (default: "5Gi")
+# tautulli_storage_size = "5Gi"
+
+# Size of persistent storage for Overseerr config (default: "10Gi")
+# overseerr_storage_size = "10Gi"
+
 # Notes:
 # - Hostnames are automatically generated:
 #   - Master: k3s-master

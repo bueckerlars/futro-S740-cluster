@@ -1,6 +1,18 @@
 # Services Deployment
 # Deploys various services to the Kubernetes cluster
 
+# Shared namespace for streaming services
+resource "kubernetes_namespace" "streaming" {
+  metadata {
+    name = "streaming"
+  }
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster
+  ]
+}
+
 # Monitoring service (Prometheus + Grafana)
 module "monitoring" {
   source = "./modules/services/monitoring"
@@ -143,6 +155,48 @@ module "couchdb" {
   storage_size   = var.couchdb_storage_size
 
   depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
+  ]
+}
+
+# Tautulli service (Plex monitoring)
+module "tautulli" {
+  source = "./modules/services/tautulli"
+
+  namespace   = kubernetes_namespace.streaming.metadata[0].name
+  domain      = "tautulli.${var.domain}"
+  local_domain = var.local_domain
+  storage_size = var.tautulli_storage_size
+  time_zone    = var.streaming_time_zone
+  puid         = var.streaming_puid
+  pgid         = var.streaming_pgid
+
+  depends_on = [
+    kubernetes_namespace.streaming,
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
+  ]
+}
+
+# Overseerr service (Media requests)
+module "overseerr" {
+  source = "./modules/services/overseerr"
+
+  namespace    = kubernetes_namespace.streaming.metadata[0].name
+  domain       = "overseerr.${var.domain}"
+  local_domain = var.local_domain
+  storage_size = var.overseerr_storage_size
+  time_zone    = var.streaming_time_zone
+  puid         = var.streaming_puid
+  pgid         = var.streaming_pgid
+
+  depends_on = [
+    kubernetes_namespace.streaming,
     null_resource.kubeconfig,
     time_sleep.wait_for_cluster,
     kubernetes_manifest.traefik_middleware,

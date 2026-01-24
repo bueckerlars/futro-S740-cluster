@@ -290,3 +290,33 @@ variable "couchdb_storage_size" {
   default     = "10Gi"
 }
 
+variable "streaming_puid" {
+  type        = number
+  description = "User ID for Tautulli/Overseerr container file permissions"
+  default     = 1000
+}
+
+variable "streaming_pgid" {
+  type        = number
+  description = "Group ID for Tautulli/Overseerr container file permissions"
+  default     = 1000
+}
+
+variable "streaming_time_zone" {
+  type        = string
+  description = "Time zone for Tautulli/Overseerr (e.g., Europe/Berlin)"
+  default     = "Europe/Berlin"
+}
+
+variable "tautulli_storage_size" {
+  type        = string
+  description = "Size of persistent storage for Tautulli config"
+  default     = "5Gi"
+}
+
+variable "overseerr_storage_size" {
+  type        = string
+  description = "Size of persistent storage for Overseerr config"
+  default     = "10Gi"
+}
+

@@ -47,3 +47,14 @@ output "vaultwarden_urls" {
   value       = module.vaultwarden.vaultwarden_urls
 }
 
+# Streaming services outputs
+output "tautulli_urls" {
+  description = "URLs to access Tautulli (all domains)"
+  value       = module.tautulli.tautulli_urls
+}
+
+output "overseerr_urls" {
+  description = "URLs to access Overseerr (all domains)"
+  value       = module.overseerr.overseerr_urls
+}
+

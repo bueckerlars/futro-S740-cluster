@@ -20,6 +20,8 @@ locals {
     "paperless", # Paperless NGX module (paperless.${var.domain})
     "office",    # Collabora Online module (office.${var.domain})
     "couchdb",   # CouchDB module (couchdb.${var.domain})
+    "tautulli",  # Tautulli module (tautulli.${var.domain})
+    "overseerr", # Overseerr module (overseerr.${var.domain})
   ]
 
   # Root domain (for @ record)
