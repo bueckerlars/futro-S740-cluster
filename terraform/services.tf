@@ -132,3 +132,21 @@ module "collabora" {
   ]
 }
 
+# CouchDB service (NoSQL database)
+module "couchdb" {
+  source = "./modules/services/couchdb"
+
+  domain         = "couchdb.${var.domain}"
+  local_domain   = var.local_domain
+  admin_user     = var.couchdb_admin_user
+  admin_password = var.couchdb_admin_password
+  storage_size   = var.couchdb_storage_size
+
+  depends_on = [
+    null_resource.kubeconfig,
+    time_sleep.wait_for_cluster,
+    kubernetes_manifest.traefik_middleware,
+    kubernetes_manifest.https_redirect
+  ]
+}
+

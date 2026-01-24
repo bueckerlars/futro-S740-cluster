@@ -87,7 +87,6 @@ traefik_middlewares = {
   #     forceSTSHeader           = false  # Proxmox makes its own STS headers
   #     customRequestHeaders = {
   #       "X-Forwarded-Proto" = "https"
-  #       "X-Forwarded-Host"  = "$host"  # IMPORTANT for Proxmox
   #     }
   #   }
   # }
@@ -96,7 +95,6 @@ traefik_middlewares = {
   # nextcloud-headers = {
   #   headers = {
   #     "X-Forwarded-Proto" = "https"
-  #     "X-Forwarded-Host"  = "$host"
   #   }
   # }
 }
@@ -221,6 +219,16 @@ collabora_admin_password = "your-secure-password-here"
 # The domain variable accepts domain names only (without https:// prefix)
 # Example: ["nextcloud.example.com"]
 collabora_wopi_domains = ["nextcloud.<your-domain>"]
+
+# CouchDB configuration
+# Admin username for CouchDB (default: "admin")
+# couchdb_admin_user = "admin"
+
+# Admin password for CouchDB
+couchdb_admin_password = "your-secure-password-here"
+
+# Size of persistent storage for CouchDB data (default: "10Gi")
+# couchdb_storage_size = "10Gi"
 
 # Notes:
 # - Hostnames are automatically generated:

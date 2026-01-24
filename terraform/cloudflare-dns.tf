@@ -19,6 +19,7 @@ locals {
     "bitwarden", # Vaultwarden module (bitwarden.${var.domain})
     "paperless", # Paperless NGX module (paperless.${var.domain})
     "office",    # Collabora Online module (office.${var.domain})
+    "couchdb",   # CouchDB module (couchdb.${var.domain})
   ]
 
   # Root domain (for @ record)

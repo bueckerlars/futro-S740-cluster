@@ -272,3 +272,21 @@ variable "collabora_wopi_domains" {
   default     = []
 }
 
+variable "couchdb_admin_user" {
+  type        = string
+  description = "Admin username for CouchDB"
+  default     = "admin"
+}
+
+variable "couchdb_admin_password" {
+  type        = string
+  description = "Admin password for CouchDB"
+  sensitive   = true
+}
+
+variable "couchdb_storage_size" {
+  type        = string
+  description = "Size of persistent storage for CouchDB data"
+  default     = "10Gi"
+}
+
